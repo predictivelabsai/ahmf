@@ -130,3 +130,73 @@ def get_genre_list() -> dict:
     )
     resp.raise_for_status()
     return {g["id"]: g["name"] for g in resp.json().get("genres", [])}
+
+
+# ---------------------------------------------------------------------------
+# Person / Talent API
+# ---------------------------------------------------------------------------
+
+def search_people(query: str, limit: int = 10) -> list[dict]:
+    """Search TMDB for actors/directors by name."""
+    resp = httpx.get(
+        f"{BASE_URL}/search/person",
+        params={"api_key": _get_api_key(), "query": query, "language": "en-US"},
+        timeout=10,
+    )
+    resp.raise_for_status()
+    return [
+        {
+            "tmdb_id": p["id"],
+            "name": p["name"],
+            "popularity": p.get("popularity", 0),
+            "known_for_department": p.get("known_for_department", ""),
+            "known_for": [
+                {"title": k.get("title") or k.get("name", ""), "year": (k.get("release_date") or "")[:4]}
+                for k in p.get("known_for", [])[:3]
+            ],
+        }
+        for p in resp.json().get("results", [])[:limit]
+    ]
+
+
+def get_person_details(person_id: int) -> Optional[dict]:
+    """Get detailed person info from TMDB."""
+    resp = httpx.get(
+        f"{BASE_URL}/person/{person_id}",
+        params={"api_key": _get_api_key(), "language": "en-US"},
+        timeout=10,
+    )
+    resp.raise_for_status()
+    p = resp.json()
+    return {
+        "tmdb_id": p["id"],
+        "name": p["name"],
+        "popularity": p.get("popularity", 0),
+        "birthday": p.get("birthday"),
+        "place_of_birth": p.get("place_of_birth"),
+        "biography": (p.get("biography") or "")[:500],
+        "known_for_department": p.get("known_for_department", ""),
+    }
+
+
+def get_person_credits(person_id: int, limit: int = 15) -> list[dict]:
+    """Get a person's movie credits from TMDB."""
+    resp = httpx.get(
+        f"{BASE_URL}/person/{person_id}/movie_credits",
+        params={"api_key": _get_api_key(), "language": "en-US"},
+        timeout=10,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    cast = sorted(data.get("cast", []), key=lambda x: x.get("popularity", 0), reverse=True)[:limit]
+    return [
+        {
+            "tmdb_id": m["id"],
+            "title": m.get("title", ""),
+            "character": m.get("character", ""),
+            "year": (m.get("release_date") or "")[:4],
+            "vote_average": m.get("vote_average", 0),
+            "popularity": m.get("popularity", 0),
+        }
+        for m in cast
+    ]

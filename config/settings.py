@@ -31,3 +31,46 @@ TERRITORIES = [
 
 # Currencies
 CURRENCIES = ["USD", "EUR", "GBP", "CAD", "AUD", "JPY", "CNY"]
+
+# Risk scoring dimensions
+RISK_DIMENSIONS = [
+    "Script Complexity", "Budget Feasibility", "Schedule Risk",
+    "Jurisdictional Risk", "Crew/Talent Risk", "Completion Risk",
+]
+RISK_TIERS = {"low": (0, 30), "moderate": (31, 55), "elevated": (56, 75), "high": (76, 100)}
+
+# VFX levels for risk/budget
+VFX_LEVELS = ["None", "Light", "Moderate", "Heavy", "VFX-Driven"]
+
+# Cast tiers for budgeting
+CAST_TIERS = ["Unknown", "Emerging", "Mid-Level", "A-List", "Marquee"]
+
+# Budget categories
+BUDGET_CATEGORIES = [
+    "Above-the-Line", "Below-the-Line (Production)", "Below-the-Line (Post)",
+    "Insurance & Legal", "Financing Costs", "Contingency",
+]
+
+# Closing checklist template
+CLOSING_CHECKLIST_TEMPLATE = [
+    ("Legal", "Fully executed loan agreement"),
+    ("Legal", "Security agreement / collateral pledge"),
+    ("Legal", "Completion guarantee"),
+    ("Legal", "Inter-party agreement"),
+    ("Legal", "Producer's legal opinion letter"),
+    ("Insurance", "E&O insurance certificate"),
+    ("Insurance", "Production insurance binder"),
+    ("Insurance", "Completion bond"),
+    ("Financial", "Chain of title documentation"),
+    ("Financial", "Approved budget and cashflow schedule"),
+    ("Financial", "Lab access letter"),
+    ("Financial", "Collection account management agreement (CAMA)"),
+    ("Distribution", "Executed distribution agreement(s)"),
+    ("Distribution", "Delivery schedule"),
+    ("Distribution", "Sales estimates / MG commitments"),
+    ("Tax Incentives", "Tax incentive application filed"),
+    ("Tax Incentives", "Auditor opinion letter"),
+    ("Compliance", "KYC / AML documentation"),
+    ("Compliance", "OFAC screening completed"),
+    ("Compliance", "Board / investment committee approval"),
+]

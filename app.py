@@ -226,7 +226,22 @@ def get_movie_details(tmdb_id: int) -> str:
         return f"Error fetching movie details: {e}"
 
 
-TOOLS = [search_deals, get_deal_detail, get_portfolio_overview, search_contacts, search_movies, get_movie_details]
+# Import module tools
+from modules.risk import analyze_production_risk
+from modules.budget import generate_budget_tool
+from modules.schedule import generate_schedule_tool
+from modules.funding import search_incentives_tool
+from modules.dataroom import generate_closing_checklist_tool
+from modules.audience import analyze_audience_tool
+from modules.talent import search_talent_tool, analyze_talent_tool
+
+TOOLS = [
+    search_deals, get_deal_detail, get_portfolio_overview, search_contacts,
+    search_movies, get_movie_details,
+    analyze_production_risk, generate_budget_tool, generate_schedule_tool,
+    search_incentives_tool, generate_closing_checklist_tool,
+    analyze_audience_tool, search_talent_tool, analyze_talent_tool,
+]
 
 langgraph_agent = create_react_agent(model=llm, tools=TOOLS, prompt=SYSTEM_PROMPT)
 
@@ -261,6 +276,12 @@ async def _command_interceptor(msg: str, session) -> str | None:
             "| `contact:search NAME` | Search contacts |\n"
             "| `portfolio` | Portfolio overview |\n"
             "| `estimate:new` | Generate sales estimate |\n"
+            "| `risk:new` | Production risk assessment |\n"
+            "| `budget:new` | Generate production budget |\n"
+            "| `schedule:new` | Generate shooting schedule |\n"
+            "| `incentives` | Search film incentive programs |\n"
+            "| `talent:search NAME` | Search actors/directors |\n"
+            "| `audience:new` | Audience & marketing analysis |\n"
             "| `help` | Show this help |\n\n"
             "Or ask any question in natural language."
         )
@@ -275,6 +296,18 @@ async def _command_interceptor(msg: str, session) -> str | None:
             "- **Director**\n\n"
             "Ask me: *'Estimate revenue for [Title], a [genre] film with [cast] directed by [director] at $[budget]'*"
         )
+    if first == "risk:new":
+        return "Navigate to **Risk Scoring** in the sidebar, or ask me to analyze risk for a specific project.\n\nExample: *'Analyze production risk for a $20M action film shooting in Georgia with heavy VFX'*"
+    if first == "budget:new":
+        return "Navigate to **Smart Budget** in the sidebar, or ask me to generate a budget.\n\nExample: *'Generate a budget for a $15M drama with A-list cast shooting 35 days in NYC'*"
+    if first == "schedule:new":
+        return "Navigate to **Scheduling** in the sidebar, or ask me to create a schedule.\n\nExample: *'Create a 25-day shooting schedule for a thriller at 3 locations'*"
+    if first == "incentives" or first == "incentive:search":
+        return search_incentives_tool(rest)
+    if first == "talent:search":
+        return search_talent_tool(rest) if rest else "Usage: `talent:search ACTOR_NAME`"
+    if first == "audience:new":
+        return "Navigate to **Audience Intel** in the sidebar, or ask me to analyze audience for a project.\n\nExample: *'Analyze target audience for a $30M sci-fi film starring Chris Hemsworth'*"
 
     return None
 
@@ -714,13 +747,13 @@ def _left_pane(user=None):
         Div(
             Div("AI Tools", cls="sidebar-section-title"),
             _sidebar_item("estimate", "Sales Estimates", "loadModule('/module/estimates', 'Sales Estimates')", item_id="nav-estimates"),
-            _sidebar_item("risk", "Risk Scoring", "loadModule('/module/scaffold/risk', 'Production Risk')", badge="Soon"),
-            _sidebar_item("budget", "Smart Budget", "loadModule('/module/scaffold/budget', 'Smart Budget')", badge="Soon"),
-            _sidebar_item("schedule", "Scheduling", "loadModule('/module/scaffold/schedule', 'Scheduling')", badge="Soon"),
-            _sidebar_item("funding", "Soft Funding", "loadModule('/module/scaffold/funding', 'Soft Funding')", badge="Soon"),
-            _sidebar_item("dataroom", "Data Room", "loadModule('/module/scaffold/dataroom', 'Data Room')", badge="Soon"),
-            _sidebar_item("audience", "Audience Intel", "loadModule('/module/scaffold/audience', 'Audience Intel')", badge="Soon"),
-            _sidebar_item("talent", "Talent Intel", "loadModule('/module/scaffold/talent', 'Talent Intel')", badge="Soon"),
+            _sidebar_item("risk", "Risk Scoring", "loadModule('/module/risk', 'Risk Scoring')", item_id="nav-risk"),
+            _sidebar_item("budget", "Smart Budget", "loadModule('/module/budget', 'Smart Budget')", item_id="nav-budget"),
+            _sidebar_item("schedule", "Scheduling", "loadModule('/module/schedule', 'Scheduling')", item_id="nav-schedule"),
+            _sidebar_item("funding", "Soft Funding", "loadModule('/module/funding', 'Soft Funding')", item_id="nav-funding"),
+            _sidebar_item("dataroom", "Data Room", "loadModule('/module/dataroom', 'Data Room')", item_id="nav-dataroom"),
+            _sidebar_item("audience", "Audience Intel", "loadModule('/module/audience', 'Audience Intel')", item_id="nav-audience"),
+            _sidebar_item("talent", "Talent Intel", "loadModule('/module/talent', 'Talent Intel')", item_id="nav-talent"),
             cls="sidebar-section",
         ),
         # Footer with user info
@@ -1137,54 +1170,25 @@ def module_estimates(session):
     )
 
 
-# Scaffold routes for products 3-9
-_SCAFFOLDS = {
-    "risk": ("Production Risk Scoring", "AI-driven feasibility engine — 'Moody's for execution risk.'",
-             ["Script Complexity Analysis", "Jurisdictional Labor Risk", "Crew Reliability Database",
-              "Historical Overrun Benchmarking", "Schedule Feasibility Scoring", "Completion Risk Index"]),
-    "budget": ("Smart Budgeting Tool", "Generative budgeting logic + live cost intelligence.",
-               ["Script-Based Budget Auto-Generation", "Location-Based Cost Database",
-                "Union & Labor Compliance", "Tax Incentive Integration", "Budget Scenario Modeling"]),
-    "schedule": ("Automated Production Scheduling", "Predictive production efficiency software.",
-                 ["Script Breakdown Automation", "Location Clustering Optimization",
-                  "Crew Availability Modeling", "Bottleneck Prediction", "Scenario Comparison"]),
-    "funding": ("Soft Funding Discovery Engine", "'Kayak for film incentives.'",
-                ["Incentive Database (Country/State/Region)", "Eligibility Filters",
-                 "Rebate Calculator", "Application Timeline Averages", "Compliance Reminders"]),
-    "dataroom": ("Deal Closing & Data Room", "Infrastructure layer for streamlined closings.",
-                 ["Secure Digital Data Room", "Auto-Generated Closing Checklists",
-                  "Document Tracking + Versioning", "Drawdown Request Automation", "Digital Signature Integration"]),
-    "audience": ("Audience & Marketing Intelligence", "Campaign simulator meets audience heat map.",
-                 ["Audience Segmentation Prediction", "Demographic + Psychographic Clustering",
-                  "Channel Performance Simulation", "Spend-to-ROI Projection", "Release Strategy Optimization"]),
-    "talent": ("Talent Intelligence", "Taste graph meets market intelligence.",
-               ["Script Tone Analysis", "Cast Heat Index", "Historical ROI Correlation",
-                "Genre Alignment Scoring", "Package Simulation (Cast Combinations)", "International Sales Impact"]),
-}
+# ---------------------------------------------------------------------------
+# Register Product Module Routes (3-9)
+# ---------------------------------------------------------------------------
 
+from modules.risk import register_routes as risk_routes
+from modules.budget import register_routes as budget_routes
+from modules.schedule import register_routes as schedule_routes
+from modules.funding import register_routes as funding_routes
+from modules.dataroom import register_routes as dataroom_routes
+from modules.audience import register_routes as audience_routes
+from modules.talent import register_routes as talent_routes
 
-@rt("/module/scaffold/{product}")
-def module_scaffold(product: str, session):
-    if product not in _SCAFFOLDS:
-        return Div(P("Product not found."), cls="module-content")
-    title, desc, features = _SCAFFOLDS[product]
-    return _scaffold_page(title, desc, features)
-
-
-def _scaffold_page(title, desc, features):
-    return Div(
-        Div(
-            Div("Coming Soon", cls="coming-soon-icon", style="font-size:1rem;color:#64748b;"),
-            H2(title),
-            P(desc),
-            Div(
-                Ul(*[Li(f) for f in features]),
-                cls="coming-soon-features",
-            ),
-            cls="coming-soon",
-        ),
-        cls="module-content",
-    )
+risk_routes(rt)
+budget_routes(rt)
+schedule_routes(rt)
+funding_routes(rt)
+dataroom_routes(rt)
+audience_routes(rt)
+talent_routes(rt)
 
 
 # ---------------------------------------------------------------------------
