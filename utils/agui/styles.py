@@ -17,12 +17,12 @@ CHAT_UI_STYLES = """
   --border-strong: #cbd5e1;
   --accent: #0066cc;
   --accent-hover: #0052a3;
-  --table-bg: #1e293b;
-  --table-header: #1e293b;
-  --table-border: #334155;
-  --table-stripe: #263348;
-  --table-hover: #334155;
-  --table-text: #f1f5f9;
+  --table-bg: #ffffff;
+  --table-header: #f1f5f9;
+  --table-border: #e2e8f0;
+  --table-stripe: #f8fafc;
+  --table-hover: #f1f5f9;
+  --table-text: #1e293b;
   --code-bg: #f1f5f9;
   --user-bubble: #0066cc;
   --asst-bubble: #f8fafc;
@@ -119,21 +119,22 @@ CHAT_UI_STYLES = """
 .chat-message-content table {
   border-collapse: collapse; width: 100%; margin: 0.5rem 0;
   background: var(--table-bg); display: block; overflow-x: auto;
-  border: 1px solid var(--table-border); border-radius: 0.375rem;
-  font-size: 0.85rem; color: var(--text-primary);
+  border: 1px solid var(--table-border); border-radius: 0.5rem;
+  font-size: 0.85rem;
 }
 .chat-message-content thead { display: table; width: 100%; table-layout: fixed; }
 .chat-message-content tbody { display: table; width: 100%; table-layout: fixed; }
 .chat-message-content tr { display: table-row; }
 .chat-message-content th, .chat-message-content td {
   display: table-cell; border: 1px solid var(--table-border);
-  padding: 0.4rem 0.5rem; text-align: left;
-  color: var(--table-text) !important; white-space: nowrap; font-size: 0.8rem;
+  padding: 0.5rem 0.75rem; text-align: left;
+  color: var(--table-text); white-space: nowrap; font-size: 0.8rem;
 }
 .chat-message-content th {
   background: var(--table-header); font-weight: 600;
-  color: var(--table-text) !important; font-size: 0.8rem;
-  text-transform: uppercase; letter-spacing: 0.03em;
+  color: var(--text-secondary); font-size: 0.75rem;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  border-bottom: 2px solid var(--border-strong);
 }
 .chat-message-content tbody tr:nth-child(even) td { background: var(--table-stripe); }
 .chat-message-content tbody tr:hover td { background: var(--table-hover); }
