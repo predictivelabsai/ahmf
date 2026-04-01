@@ -133,6 +133,24 @@ The markdown version is at `docs/AHMF_Platform_Overview.md` for reference.
 
 To regenerate after changes: update screenshots first (see User Guide Generation above), then run the script. The script reads from `static/guide/` and produces a branded PPTX with Ashland Hill blue theme.
 
+## Demo Video Generation
+
+```bash
+# Generate product demo video and GIF (app must be running)
+python app.py &
+python tests/capture_video.py
+
+# Output: docs/demo_video.mp4 (45s H.264), docs/demo_video.gif, docs/frames/*.png
+```
+
+Walks through the entire platform: login, welcome, chat commands, all module pages, and back to welcome.
+
+## README Generation
+
+The `README.md` should be updated when significant changes are made to the platform — new products, new features, changed commands, or architecture changes. It includes the demo GIF, feature list, quick start (with uv), environment variables, tech stack, and testing commands.
+
+When the user says "update readme" or after major feature work, regenerate `README.md` to reflect current state.
+
 ## Chat Commands
 
 ```
