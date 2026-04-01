@@ -245,7 +245,7 @@ CHAT_UI_STYLES = """
   background-clip: text; margin-bottom: 0.5rem;
 }
 .welcome-subtitle { font-size: 0.875rem; color: #64748b; margin-bottom: 2rem; }
-.welcome-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; width: 100%; }
+.welcome-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: 100%; max-width: 640px; }
 .welcome-card {
   background: var(--bg-primary); border: 1px solid var(--border-color);
   border-radius: 12px; padding: 1rem; cursor: pointer; text-align: left; transition: all 0.2s;
@@ -311,6 +311,9 @@ CHAT_UI_STYLES = """
 /* === Responsive === */
 @media (max-width: 768px) {
   .chat-message { max-width: 95%; }
+  .welcome-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
   .welcome-grid { grid-template-columns: 1fr; }
 }
 """

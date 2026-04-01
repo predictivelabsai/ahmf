@@ -642,6 +642,59 @@ html, body { height: 100vh; overflow: hidden; }
   font-size: 0.8rem; color: #475569; padding: 0.25rem 0;
 }
 
+/* === New Chat Button === */
+.new-chat-btn {
+  width: 100%;
+  padding: 0.5rem;
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-family: inherit;
+  border-radius: 0.375rem;
+  margin-bottom: 0.5rem;
+  transition: all 0.2s;
+}
+.new-chat-btn:hover { background: #eff6ff; border-color: #93c5fd; color: #0066cc; }
+
+/* === Help Expanders === */
+.help-section { display: flex; flex-direction: column; margin: 0.25rem 0 0.5rem; }
+
+.help-toggle {
+  display: flex; align-items: center; width: 100%;
+  padding: 0.4rem 0.6rem; background: transparent; border: none;
+  color: #475569; cursor: pointer; font-size: 0.75rem;
+  font-family: inherit; border-radius: 0.375rem; transition: all 0.15s;
+}
+.help-toggle:hover { background: #f1f5f9; }
+.help-cnt { margin-left: auto; margin-right: 0.35rem; font-size: 0.65rem; color: #94a3b8; }
+.help-arrow { color: #94a3b8; font-size: 0.6rem; transition: transform 0.2s; }
+.help-toggle.open .help-arrow { transform: rotate(90deg); }
+
+.help-list { display: none; flex-direction: column; padding-left: 0.5rem; }
+.help-list.open { display: flex; }
+
+.help-item {
+  display: block; width: 100%; text-align: left;
+  padding: 0.3rem 0.5rem; background: transparent; border: none;
+  color: #64748b; cursor: pointer; font-size: 0.7rem;
+  font-family: ui-monospace, monospace; border-radius: 0.25rem; transition: all 0.15s;
+}
+.help-item:hover { background: #eff6ff; color: #0066cc; }
+
+/* === Conversation List === */
+.conv-section { margin-top: 0.5rem; }
+
+.conv-item {
+  display: block; padding: 0.35rem 0.6rem; font-size: 0.75rem;
+  color: #64748b; text-decoration: none; border-radius: 0.25rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: all 0.15s;
+}
+.conv-item:hover { background: #f1f5f9; color: #1e293b; }
+.conv-active { background: #dbeafe; color: #0066cc; font-weight: 600; }
+
 /* === Responsive === */
 @media (max-width: 768px) {
   .app-layout { grid-template-columns: 1fr !important; }
@@ -654,6 +707,25 @@ LAYOUT_JS = """
 function toggleRightPane() {
     var layout = document.querySelector('.app-layout');
     layout.classList.toggle('right-open');
+}
+
+/* Help expander toggle */
+function toggleGroup(catId) {
+    var list = document.getElementById(catId);
+    if (!list) return;
+    list.classList.toggle('open');
+    var btn = list.previousElementSibling;
+    if (btn) btn.classList.toggle('open');
+}
+
+/* Fill chat input from sidebar help item */
+function fillChat(cmd) {
+    if (window._aguiProcessing) return;
+    showChat();
+    setTimeout(function() {
+        var ta = document.getElementById('chat-input');
+        if (ta) { ta.value = cmd; ta.focus(); }
+    }, 100);
 }
 
 function showTab(tabName) {
@@ -741,6 +813,56 @@ def _sidebar_item(icon_name, label, onclick="", badge=None, item_id="", active=F
     )
 
 
+# ---------------------------------------------------------------------------
+# Sidebar Help Commands (click to populate chat)
+# ---------------------------------------------------------------------------
+
+_HELP_CATEGORIES = [
+    ("Deals & Portfolio", [
+        ("deal:list", "List all deals"),
+        ("portfolio", "Portfolio overview"),
+        ("contact:search Distributor", "Search contacts"),
+    ]),
+    ("Sales & Finance", [
+        ("sales:list", "List sales contracts"),
+        ("credit:Test Distributor Corp", "Credit rating lookup"),
+        ("transactions", "Transaction ledger"),
+        ("messages", "Messages & tasks"),
+        ("incentives", "Film tax incentives"),
+    ]),
+    ("AI Analysis", [
+        ("estimate:new", "Sales estimate"),
+        ("risk:new", "Risk assessment"),
+        ("budget:new", "Generate budget"),
+        ("schedule:new", "Shooting schedule"),
+        ("audience:new", "Audience analysis"),
+        ("talent:search Florence Pugh", "Talent search"),
+    ]),
+]
+
+
+def _help_expanders():
+    """Build collapsible help command groups for the sidebar."""
+    groups = []
+    for cat_name, items in _HELP_CATEGORIES:
+        cat_id = f"help-{cat_name.lower().replace(' ', '-').replace('&', '')}"
+        toggle_btn = Button(
+            cat_name,
+            Span(f"{len(items)}", cls="help-cnt"),
+            Span(">", cls="help-arrow"),
+            cls="help-toggle",
+            onclick=f"toggleGroup('{cat_id}')",
+        )
+        tool_items = [
+            Button(cmd, cls="help-item", onclick=f"fillChat({repr(cmd)})", title=desc)
+            for cmd, desc in items
+        ]
+        tool_list = Div(*tool_items, cls="help-list", id=cat_id)
+        groups.append(toggle_btn)
+        groups.append(tool_list)
+    return Div(*groups, cls="help-section")
+
+
 def _left_pane(user=None):
     return Div(
         Div(
@@ -751,11 +873,19 @@ def _left_pane(user=None):
             ),
             cls="sidebar-logo",
         ),
-        # Main navigation
+        # Chat controls
         Div(
-            Div("Intelligence", cls="sidebar-section-title"),
+            Button("+ New Chat", cls="new-chat-btn", onclick="window.location.href='/?new=1'"),
             _sidebar_item("chat", "AI Chat", "showChat()", item_id="nav-chat", active=True),
             _sidebar_item("search", "User Guide", "loadModule('/module/guide', 'User Guide')", item_id="nav-guide"),
+            # Help commands
+            _help_expanders(),
+            # Conversation history
+            Div(
+                Div("Recent Chats", cls="sidebar-section-title"),
+                Div(id="conv-list", hx_get="/agui-conv/list", hx_trigger="load", hx_swap="innerHTML"),
+                cls="conv-section",
+            ),
             cls="sidebar-section",
         ),
         Div(
@@ -780,7 +910,7 @@ def _left_pane(user=None):
             _sidebar_item("talent", "Talent Intel", "loadModule('/module/talent', 'Talent Intel')", item_id="nav-talent"),
             cls="sidebar-section",
         ),
-        # Footer with user info
+        # Footer
         Div(
             _sidebar_item("logout", user.get("display_name", "User") if user else "Login",
                            f"window.location.href='/logout'" if user else "window.location.href='/login'"),
@@ -1203,19 +1333,29 @@ comms_routes(rt)
 # ---------------------------------------------------------------------------
 
 @rt("/")
-def index(session):
+def index(session, new: str = "", thread: str = ""):
     if not session.get("user_id"):
         return RedirectResponse("/login", status_code=303)
+
+    # New chat: generate fresh thread
+    if new == "1":
+        thread_id = str(_uuid.uuid4())
+        session["thread_id"] = thread_id
+    elif thread:
+        # Resume specific thread
+        thread_id = thread
+        session["thread_id"] = thread_id
+    else:
+        thread_id = session.get("thread_id")
+        if not thread_id:
+            thread_id = str(_uuid.uuid4())
+            session["thread_id"] = thread_id
 
     user = {
         "user_id": session.get("user_id"),
         "email": session.get("email"),
         "display_name": session.get("display_name", "User"),
     }
-    thread_id = session.get("thread_id")
-    if not thread_id:
-        thread_id = str(_uuid.uuid4())
-        session["thread_id"] = thread_id
 
     return (
         Title("AHMF — Ashland Hill Media Finance"),
@@ -1237,6 +1377,31 @@ def index(session):
         ),
         Script(LAYOUT_JS),
     )
+
+
+@rt("/agui-conv/list")
+def conv_list(session):
+    """Return conversation list for sidebar."""
+    current_tid = session.get("thread_id", "")
+    user_id = session.get("user_id")
+    try:
+        # Show user's conversations + unassigned ones
+        convs = list_conversations(user_id=user_id, limit=15)
+        if not convs:
+            convs = list_conversations(user_id=None, limit=15)
+    except Exception:
+        convs = []
+    if not convs:
+        return Div(Span("No conversations yet", style="font-size:0.75rem;color:#94a3b8;padding:0.5rem;"))
+    items = []
+    for c in convs:
+        tid = c["thread_id"]
+        title = c.get("first_msg") or c.get("title") or "New chat"
+        if len(title) > 35:
+            title = title[:35] + "..."
+        cls = "conv-item conv-active" if tid == current_tid else "conv-item"
+        items.append(A(title, href=f"/?thread={tid}", cls=cls))
+    return Div(*items)
 
 
 # ---------------------------------------------------------------------------

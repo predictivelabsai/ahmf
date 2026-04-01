@@ -132,11 +132,16 @@ class UI:
         _ICON_SEARCH = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>'
         _ICON_FILM = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/><line x1="17" y1="17" x2="22" y2="17"/></svg>'
 
+        _ICON_RISK = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>'
+        _ICON_GLOBE = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>'
+
         cards = [
             ("View Deal Pipeline", "See all active and pipeline deals", "deal:list", "#0066cc", _ICON_DEAL),
             ("Generate Sales Estimate", "AI-powered revenue projections", "estimate:new", "#8b5cf6", _ICON_CHART),
             ("Search Contacts", "Find distributors, producers, agents", "contact:search", "#f59e0b", _ICON_SEARCH),
             ("Portfolio Overview", "Aggregate loan and performance data", "portfolio", "#10b981", _ICON_FILM),
+            ("Production Risk Score", "Evaluate execution risk across 6 dimensions", "risk:new", "#dc2626", _ICON_RISK),
+            ("Film Tax Incentives", "Search 16+ global incentive programs", "incentives", "#0891b2", _ICON_GLOBE),
         ]
 
         card_els = []
@@ -170,16 +175,30 @@ class UI:
 
     def chat(self, **kwargs):
         """Return the full chat widget (messages + input + scripts)."""
+        # Check if thread has existing messages — only fetch via HTMX if so
+        has_messages = False
+        try:
+            rows = load_conversation_messages(self.thread_id)
+            has_messages = len(rows) > 0
+        except Exception:
+            pass
+
+        if has_messages:
+            msg_div = Div(
+                id="chat-messages", cls="chat-messages",
+                hx_get=f"/agui/messages/{self.thread_id}",
+                hx_trigger="load", hx_swap="outerHTML",
+            )
+        else:
+            # New thread — render welcome directly, no HTMX fetch (prevents flash)
+            msg_div = Div(
+                self._render_welcome(),
+                id="chat-messages", cls="chat-messages",
+            )
+
         components = [
             get_chat_styles(),
-            Div(
-                self._render_welcome(),
-                id="chat-messages",
-                cls="chat-messages",
-                hx_get=f"/agui/messages/{self.thread_id}",
-                hx_trigger="load",
-                hx_swap="outerHTML",
-            ),
+            msg_div,
             self._render_input_form(),
             Script("""
                 (function() {
