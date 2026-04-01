@@ -28,7 +28,7 @@ Film financing operating system with AI-driven intelligence tools.
 
 ## Products (from Roadmap)
 
-1. **Film Financing OS** — Deals, Sales & Collections, Credit Rating, Accounting, Contacts, Communications
+1. **Film Financing OS** — Deals (CRUD), Sales & Collections (contracts, MG tracking, collections), Credit Rating (AI scoring), Accounting (transaction ledger), Contacts (CRUD), Communications (messages/tasks)
 2. **Sales Estimates Generator** — TMDB/OMDB comp analysis, territory MG projections, box office forecasting
 3. **Production Risk Scoring** — AI scores 6 risk dimensions (0-100), risk tier, mitigations
 4. **Smart Budgeting Tool** — AI generates low/mid/high budget scenarios with line items
@@ -147,6 +147,10 @@ schedule:new                 Generate shooting schedule
 incentives                   Search film incentive programs
 talent:search NAME           Search actors/directors
 audience:new                 Audience & marketing analysis
+sales:list                   List sales contracts
+credit:CONTACT               Look up credit rating
+transactions                 View transaction ledger
+messages                     View messages & tasks
 help                         Show available commands
 ```
 
@@ -156,7 +160,7 @@ help                         Show available commands
 - **Command interceptor**: Colon-syntax routed to handlers, free-form to LangGraph AI
 - **WebSocket streaming**: LangGraph astream_events(v2) for real-time AI responses
 - **HTMX module views**: Product pages swapped into center pane via hx-get/hx-swap
-- **14 AI agent tools**: deals, contacts, portfolio, TMDB/OMDB, risk, budget, schedule, incentives, closing, audience, talent
+- **18 AI agent tools**: deals, contacts, portfolio, TMDB/OMDB, risk, budget, schedule, incentives, closing, audience, talent, sales contracts, credit rating, transactions, messages
 
 ## Deployment
 

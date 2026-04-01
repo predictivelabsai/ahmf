@@ -3,52 +3,52 @@
     {
       "name": "Leonardo DiCaprio",
       "character": "Dom Cobb",
-      "popularity": 12.0953
+      "popularity": 12.6077
     },
     {
       "name": "Joseph Gordon-Levitt",
       "character": "Arthur",
-      "popularity": 3.1822
+      "popularity": 4.0448
     },
     {
       "name": "Ken Watanabe",
       "character": "Saito",
-      "popularity": 3.9566
+      "popularity": 4.7433
     },
     {
       "name": "Tom Hardy",
       "character": "Eames",
-      "popularity": 10.0326
+      "popularity": 11.3586
     },
     {
       "name": "Elliot Page",
       "character": "Ariadne",
-      "popularity": 6.1302
+      "popularity": 8.3564
     },
     {
       "name": "Dileep Rao",
       "character": "Yusuf",
-      "popularity": 0.7619
+      "popularity": 0.6909
     },
     {
       "name": "Cillian Murphy",
       "character": "Robert Fischer, Jr.",
-      "popularity": 11.1718
+      "popularity": 11.3874
     },
     {
       "name": "Tom Berenger",
       "character": "Peter Browning",
-      "popularity": 2.4645
+      "popularity": 2.2954
     },
     {
       "name": "Marion Cotillard",
       "character": "Mal Cobb",
-      "popularity": 3.4053
+      "popularity": 3.8652
     },
     {
       "name": "Pete Postlethwaite",
       "character": "Maurice Fischer",
-      "popularity": 1.3064
+      "popularity": 1.7492
     }
   ],
   "directors": [

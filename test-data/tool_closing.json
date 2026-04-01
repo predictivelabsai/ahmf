@@ -1,3 +1,3 @@
 {
-  "result": "Closing checklist created for **Test Film Alpha** with 20 items."
+  "result": "Checklist already exists for **Test Film Alpha**. Use `closing:d8b05790` to view it."
 }

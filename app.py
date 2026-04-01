@@ -234,6 +234,10 @@ from modules.funding import search_incentives_tool
 from modules.dataroom import generate_closing_checklist_tool
 from modules.audience import analyze_audience_tool
 from modules.talent import search_talent_tool, analyze_talent_tool
+from modules.sales import search_sales_contracts
+from modules.credit import get_credit_rating
+from modules.accounting import search_transactions
+from modules.comms import search_messages
 
 TOOLS = [
     search_deals, get_deal_detail, get_portfolio_overview, search_contacts,
@@ -241,6 +245,7 @@ TOOLS = [
     analyze_production_risk, generate_budget_tool, generate_schedule_tool,
     search_incentives_tool, generate_closing_checklist_tool,
     analyze_audience_tool, search_talent_tool, analyze_talent_tool,
+    search_sales_contracts, get_credit_rating, search_transactions, search_messages,
 ]
 
 langgraph_agent = create_react_agent(model=llm, tools=TOOLS, prompt=SYSTEM_PROMPT)
@@ -282,6 +287,10 @@ async def _command_interceptor(msg: str, session) -> str | None:
             "| `incentives` | Search film incentive programs |\n"
             "| `talent:search NAME` | Search actors/directors |\n"
             "| `audience:new` | Audience & marketing analysis |\n"
+            "| `sales:list` | List sales contracts |\n"
+            "| `credit:CONTACT` | Look up credit rating |\n"
+            "| `transactions` | View transaction ledger |\n"
+            "| `messages` | View messages & tasks |\n"
             "| `help` | Show this help |\n\n"
             "Or ask any question in natural language."
         )
@@ -308,6 +317,14 @@ async def _command_interceptor(msg: str, session) -> str | None:
         return search_talent_tool(rest) if rest else "Usage: `talent:search ACTOR_NAME`"
     if first == "audience:new":
         return "Navigate to **Audience Intel** in the sidebar, or ask me to analyze audience for a project.\n\nExample: *'Analyze target audience for a $30M sci-fi film starring Chris Hemsworth'*"
+    if first == "sales:list" or first == "sales":
+        return search_sales_contracts(rest)
+    if first.startswith("credit:") and len(first) > 7:
+        return get_credit_rating(first[7:])
+    if first == "transactions" or first == "txns":
+        return search_transactions(rest)
+    if first == "messages" or first == "tasks":
+        return search_messages(rest)
 
     return None
 
@@ -1128,45 +1145,7 @@ def contact_create(session, name: str, company: str = "", contact_type: str = "o
     return module_contacts(session)
 
 
-# Product 1 sub-module placeholder pages
-def _p1_placeholder(title, desc, features):
-    return Div(
-        Div(
-            H2(title), P(desc, style="color:#64748b;margin-bottom:1.5rem;"),
-            H3("Planned Features", style="font-size:0.95rem;margin-bottom:0.5rem;"),
-            Ul(*[Li(f, style="color:#475569;padding:0.2rem 0;") for f in features]),
-            style="max-width:600px;margin:2rem auto;",
-        ),
-        cls="module-content",
-    )
-
-@rt("/module/sales")
-def module_sales(session):
-    return _p1_placeholder("Sales & Collections",
-        "Revenue tracking and collateral monitoring engine.",
-        ["Territory-Based Sales Mapping", "Distributor & Sales Agent Integration", "Collection Management & Alerts",
-         "Variance Analysis (Projected vs Actual)", "Receivable Tracking & Delay Flagging"])
-
-@rt("/module/credit")
-def module_credit(session):
-    return _p1_placeholder("Credit Rating",
-        "Counterparty strength assessment layer.",
-        ["Automated Distributor & Producer Scoring", "Payment Reliability Tracking",
-         "Risk Assessment Metrics", "Custom Rating Frameworks"])
-
-@rt("/module/accounting")
-def module_accounting(session):
-    return _p1_placeholder("Accounting",
-        "Transaction-level financial integrity.",
-        ["Multi-Account Balance Tracking", "Payment Evidence & Audit Trail",
-         "FX & Currency Management", "Automated Reconciliation"])
-
-@rt("/module/comms")
-def module_comms(session):
-    return _p1_placeholder("Communications",
-        "Execution control layer.",
-        ["Integrated Messaging", "Task Assignment & Deadline Tracking",
-         "Version-Controlled Notes", "Milestone & Payment Notifications"])
+# Product 1 sub-module routes registered below via register_routes()
 
 @rt("/module/estimates")
 def module_estimates(session):
@@ -1200,6 +1179,10 @@ from modules.dataroom import register_routes as dataroom_routes
 from modules.audience import register_routes as audience_routes
 from modules.talent import register_routes as talent_routes
 from modules.guide import register_routes as guide_routes
+from modules.sales import register_routes as sales_routes
+from modules.credit import register_routes as credit_routes
+from modules.accounting import register_routes as accounting_routes
+from modules.comms import register_routes as comms_routes
 
 risk_routes(rt)
 budget_routes(rt)
@@ -1209,6 +1192,10 @@ dataroom_routes(rt)
 audience_routes(rt)
 talent_routes(rt)
 guide_routes(rt)
+sales_routes(rt)
+credit_routes(rt)
+accounting_routes(rt)
+comms_routes(rt)
 
 
 # ---------------------------------------------------------------------------

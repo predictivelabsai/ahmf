@@ -16,7 +16,7 @@
     {
       "test": "Auth: create user",
       "status": "PASS",
-      "detail": "Created test@ahmf.local"
+      "detail": "Test user already exists"
     },
     {
       "test": "Auth: authenticate",
@@ -36,17 +36,17 @@
     {
       "test": "Seed: create test deal",
       "status": "PASS",
-      "detail": "Created deal d8b05790"
+      "detail": "Already exists: d8b05790"
     },
     {
       "test": "Seed: create test contact",
       "status": "PASS",
-      "detail": "Created contact 64e5f0ef"
+      "detail": "Already exists: 64e5f0ef"
     },
     {
       "test": "Seed: second deal (pipeline)",
       "status": "PASS",
-      "detail": "Created"
+      "detail": "Already exists"
     },
     {
       "test": "Tool: search_deals",
@@ -86,7 +86,7 @@
     {
       "test": "TMDB: search people",
       "status": "PASS",
-      "detail": "Leonardo DiCaprio (pop: 12)"
+      "detail": "Leonardo DiCaprio (pop: 13)"
     },
     {
       "test": "OMDB: search movie",
@@ -154,5 +154,5 @@
       "detail": "Scenes: 2, Chars: 5"
     }
   ],
-  "timestamp": "2026-04-01 01:16:47"
+  "timestamp": "2026-04-01 12:38:55"
 }

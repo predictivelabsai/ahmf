@@ -73,6 +73,51 @@ GUIDE_SECTIONS = [
         "caption": "Contacts list with company, type, and contact details.",
     },
     {
+        "id": "sales",
+        "title": "Sales & Collections",
+        "content": (
+            "Track territory-based sales contracts linked to deals and distributors. Monitor "
+            "minimum guarantee (MG) commitments, record collection payments, and flag overdue "
+            "receivables. The variance analysis shows projected vs actual collections per contract."
+        ),
+        "screenshot": "05_sales.png",
+        "caption": "Sales & Collections dashboard with contract stats, MG tracking, and collection status.",
+    },
+    {
+        "id": "credit",
+        "title": "Credit Rating",
+        "content": (
+            "AI-powered counterparty strength assessment. Select any contact (distributor, producer, "
+            "sales agent) and generate a credit score (0-100), payment reliability rating, risk tier "
+            "(AAA through CCC), and detailed factor breakdown covering track record, financial "
+            "stability, market position, and payment history."
+        ),
+        "screenshot": "17_credit.png",
+        "caption": "Credit Rating dashboard with AI-generated counterparty scoring.",
+    },
+    {
+        "id": "accounting",
+        "title": "Accounting",
+        "content": (
+            "Full transaction ledger tracking disbursements, repayments, fees, and interest across "
+            "all deals. Multi-currency support with net position calculation. Each transaction links "
+            "to a deal and counterparty with reference notes for audit trail."
+        ),
+        "screenshot": "18_accounting.png",
+        "caption": "Accounting module with transaction ledger, disbursement/repayment tracking, and net position.",
+    },
+    {
+        "id": "comms",
+        "title": "Communications",
+        "content": (
+            "Deal-linked messaging and task management. Create notes, tasks with due dates, and "
+            "notifications tied to specific deals. Tasks have interactive checkboxes to mark "
+            "completion, with overdue flagging for missed deadlines."
+        ),
+        "screenshot": "19_comms.png",
+        "caption": "Communications module with messages, tasks, and deadline tracking.",
+    },
+    {
         "id": "estimates",
         "title": "Sales Estimates Generator",
         "content": (
