@@ -79,9 +79,27 @@ pip install -r requirements.txt
 # Run SQL migrations
 for f in sql/*.sql; do psql $DB_URL -f "$f"; done
 
+# Seed sample data (idempotent — skips if data exists)
+python data/seed_db.py
+
 # Start the app
 python app.py    # port 5010
 ```
+
+## Seed Data
+
+```bash
+# Populate key tables with realistic film finance data
+python data/seed_db.py
+```
+
+Seeds: 12 deals (active/pipeline/closed), 20 contacts (Lionsgate, A24, StudioCanal, CAA, etc.),
+15 sales contracts with collections, 20 transactions, 15 messages/tasks, 6 credit ratings,
+and 15 real comp films fetched from TMDB/OMDB (Inception, Pulp Fiction, Titanic, Dark Knight, etc.).
+
+CSVs in `data/`: `contacts.csv`, `deals.csv`, `sales_contracts.csv`, `transactions.csv`, `messages.csv`.
+
+When the user says "seed database" or "populate data", run `python data/seed_db.py`.
 
 ## Testing
 

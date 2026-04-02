@@ -52,6 +52,9 @@ cp .env.sample .env
 # Run database migrations
 for f in sql/*.sql; do psql $DB_URL -f "$f"; done
 
+# Seed sample data (14 deals, 21 contacts, 15 comp films from TMDB/OMDB, etc.)
+python data/seed_db.py
+
 # Start
 python app.py
 # Open http://localhost:5010
