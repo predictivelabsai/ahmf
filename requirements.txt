@@ -10,3 +10,8 @@ langgraph
 httpx
 pdfplumber
 plotly
+scikit-learn
+joblib
+pandas
+numpy
+openpyxl

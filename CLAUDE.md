@@ -1,6 +1,6 @@
-# AHMF — Ashland Hill Media Finance AI
+# Monika — Ashland Hill Media Finance
 
-Film financing operating system with AI-driven intelligence tools.
+Film financing operating system with AI-driven intelligence tools. Product name: **Monika**. Company: Ashland Hill Media Finance. The `ahmf` database schema is legacy and remains unchanged.
 
 ## Stack
 
@@ -21,6 +21,9 @@ Film financing operating system with AI-driven intelligence tools.
 | `utils/agui/` | AG-UI chat engine (vendored from alpatrade, adapted) |
 | `sql/` | Database migrations (01-13) |
 | `config/` | App settings and constants |
+| `utils/scoring/` | Credit-scoring ML package (catalog, dataset, training, inference) |
+| `models/` | Trained RF + Logistic Regression artefacts per collateral type |
+| `specs/` | Source wireframes, SOW PDF, and credit scoring methodology Excel |
 | `tests/` | Test suite (30 tests) |
 | `test-data/` | Test results and screenshots (generated) |
 | `static/guide/` | User guide screenshots (generated via Playwright) |
@@ -37,6 +40,7 @@ Film financing operating system with AI-driven intelligence tools.
 7. **Deal Closing & Data Room** — Per-deal 20-item closing checklists, document tracking
 8. **Audience & Marketing Intelligence** — AI predicts audience segments, marketing channels, release strategy
 9. **Talent Intelligence** — TMDB actor search, AI cast recommendations with heat/fit/ROI scores
+10. **Credit Scoring (ML)** — Random Forest + Logistic Regression per collateral type (Pre-Sales, Gap/Unsold, Tax Credit). Feature importance + per-deal contribution charts in Plotly. Methodology documented in `docs/counterparty_risk_methodology.md`. Train: `python -m utils.scoring.train`
 
 ## Secrets Policy
 
@@ -114,7 +118,22 @@ python tests/test_suite.py
 # test-data/test_summary.json has pass/fail counts
 ```
 
-When the user says "run tests" or "run regression", execute `python tests/test_suite.py`.
+When the user says "run tests" or "run regression", execute `python tests/regression_suite.py --start-app` (76 Python + Playwright tests, screenshots to `screenshots/`). `python tests/test_suite.py` is the older 30-test subset.
+
+## Change Log
+
+`docs/change_log.md` is the running changelog. Bump before every push:
+
+```bash
+python change_log.py                      # patch bump (default)
+python change_log.py --bump minor
+python change_log.py --bump major
+python change_log.py --message "..."      # override body (else uses git log)
+python change_log.py --tag                # also create git tag v{version}
+python change_log.py --dry-run            # preview only
+```
+
+Version format: `x.y.z (YYYY-MM-DD)`. When the user says "bump version" or "update changelog", run `python change_log.py`.
 
 ## User Guide Generation
 

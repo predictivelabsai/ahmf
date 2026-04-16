@@ -451,7 +451,7 @@ graph TB
     App --> OMDBe
 
     subgraph GitHub["GitHub"]
-        Repo["predictivelabsai/ahmf"]
+        Repo["predictivelabsai/monika"]
     end
 
     Repo -->|"push → auto-deploy"| Coolify

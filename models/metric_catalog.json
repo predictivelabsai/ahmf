@@ -1,0 +1,782 @@
+{
+  "pre_sales": [
+    {
+      "key": "pre_sales_m00",
+      "collateral": "pre_sales",
+      "metric": "What's the average time the Distributor takes to complete NOAs (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 6.0,
+      "row": 6
+    },
+    {
+      "key": "pre_sales_m01",
+      "collateral": "pre_sales",
+      "metric": "What's the average time the Distributor takes to complete NOAs (in the last 18 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 7.0,
+      "row": 7
+    },
+    {
+      "key": "pre_sales_m02",
+      "collateral": "pre_sales",
+      "metric": "What's the average time the Distributor takes to complete DAs (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 5.0,
+      "row": 8
+    },
+    {
+      "key": "pre_sales_m03",
+      "collateral": "pre_sales",
+      "metric": "What's the average time the Distributor takes to complete DAs (in the last 18 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 6.0,
+      "row": 9
+    },
+    {
+      "key": "pre_sales_m04",
+      "collateral": "pre_sales",
+      "metric": "What's the average time the Distributor takes to pay deposits (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 7.0,
+      "row": 10
+    },
+    {
+      "key": "pre_sales_m05",
+      "collateral": "pre_sales",
+      "metric": "What's the average time the Distributor takes to pay deposits (in the last 18 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 8.0,
+      "row": 11
+    },
+    {
+      "key": "pre_sales_m06",
+      "collateral": "pre_sales",
+      "metric": "What's the average time the Distributor takes to pay balances at receipt of NOD (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 8.0,
+      "row": 12
+    },
+    {
+      "key": "pre_sales_m07",
+      "collateral": "pre_sales",
+      "metric": "What's the average time the Distributor takes to pay balances at receipt of NOD (in the last 18 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 9.0,
+      "row": 13
+    },
+    {
+      "key": "pre_sales_m08",
+      "collateral": "pre_sales",
+      "metric": "How many times has the Distributor asked for a payment plan (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 8.0,
+      "row": 14
+    },
+    {
+      "key": "pre_sales_m09",
+      "collateral": "pre_sales",
+      "metric": "How many times has the Distributor asked for a payment plan (in the last 18 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 9.0,
+      "row": 15
+    },
+    {
+      "key": "pre_sales_m10",
+      "collateral": "pre_sales",
+      "metric": "How many times has the Distributor asked for a cancelation of a DA (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 9.0,
+      "row": 16
+    },
+    {
+      "key": "pre_sales_m11",
+      "collateral": "pre_sales",
+      "metric": "How many times has the Distributor asked for a cancelation of a DA (in the last 18 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 10.0,
+      "row": 17
+    },
+    {
+      "key": "pre_sales_m12",
+      "collateral": "pre_sales",
+      "metric": "How many times is the Distributor late in providing royalty statements (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 6.0,
+      "row": 18
+    },
+    {
+      "key": "pre_sales_m13",
+      "collateral": "pre_sales",
+      "metric": "How many times is the Distributor late in providing royalty statements (in the last 18 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 7.0,
+      "row": 19
+    },
+    {
+      "key": "pre_sales_m14",
+      "collateral": "pre_sales",
+      "metric": "What is the average delay from the Distributor in providing royalty statements (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 6.0,
+      "row": 20
+    },
+    {
+      "key": "pre_sales_m15",
+      "collateral": "pre_sales",
+      "metric": "What is the average delay from the Distributor in providing royalty statements (in the last 18 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 7.0,
+      "row": 21
+    },
+    {
+      "key": "pre_sales_m16",
+      "collateral": "pre_sales",
+      "metric": "How many times has the Distributor paid overages (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 5.0,
+      "row": 22
+    },
+    {
+      "key": "pre_sales_m17",
+      "collateral": "pre_sales",
+      "metric": "How many times has the Distributor paid overages(in the last 18 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 6.0,
+      "row": 23
+    },
+    {
+      "key": "pre_sales_m18",
+      "collateral": "pre_sales",
+      "metric": "How many pre-sales contracts is Ashland banking for a given Distributor?",
+      "category": "Cross-Default",
+      "type": "Quantitative",
+      "weight": 10.0,
+      "row": 24
+    },
+    {
+      "key": "pre_sales_m19",
+      "collateral": "pre_sales",
+      "metric": "Is this territory part of the OECD?",
+      "category": "Collection Risk",
+      "type": "Qualitative",
+      "weight": 1.0,
+      "row": 25
+    },
+    {
+      "key": "pre_sales_m20",
+      "collateral": "pre_sales",
+      "metric": "How many distributors are operating within a given territory?",
+      "category": "Market Landscape",
+      "type": "Quantitative",
+      "weight": 1.0,
+      "row": 26
+    },
+    {
+      "key": "pre_sales_m21",
+      "collateral": "pre_sales",
+      "metric": "Does the Distributor's territory has and enforce strict censorship policies?",
+      "category": "Stability of Jurisdiction",
+      "type": "Qualitative",
+      "weight": 1.0,
+      "row": 27
+    },
+    {
+      "key": "pre_sales_m22",
+      "collateral": "pre_sales",
+      "metric": "What's the Distributor's average MG size for the given budget range (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 8.0,
+      "row": 28
+    },
+    {
+      "key": "pre_sales_m23",
+      "collateral": "pre_sales",
+      "metric": "What's the Distributor's average MG size for the given budget range (in the last 18 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 9.0,
+      "row": 29
+    },
+    {
+      "key": "pre_sales_m24",
+      "collateral": "pre_sales",
+      "metric": "What's the Distributor's average MG size for the given genre (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 8.0,
+      "row": 30
+    },
+    {
+      "key": "pre_sales_m25",
+      "collateral": "pre_sales",
+      "metric": "What's the Distributor's average MG size for the given genre (in the last 18 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 9.0,
+      "row": 31
+    },
+    {
+      "key": "pre_sales_m26",
+      "collateral": "pre_sales",
+      "metric": "What's the Distributor's average MG size for the given director (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 8.0,
+      "row": 32
+    },
+    {
+      "key": "pre_sales_m27",
+      "collateral": "pre_sales",
+      "metric": "What's the Distributor's average MG size for the given director (in the last 18 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 9.0,
+      "row": 33
+    },
+    {
+      "key": "pre_sales_m28",
+      "collateral": "pre_sales",
+      "metric": "What's the Distributor's average MG size for the given lead talent (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 8.0,
+      "row": 34
+    },
+    {
+      "key": "pre_sales_m29",
+      "collateral": "pre_sales",
+      "metric": "What's the Distributor's average MG size for the given lead talent (in the last 18 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 9.0,
+      "row": 35
+    },
+    {
+      "key": "pre_sales_m30",
+      "collateral": "pre_sales",
+      "metric": "What's the Distributor's average MG size for the given producer(s) (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 8.0,
+      "row": 36
+    },
+    {
+      "key": "pre_sales_m31",
+      "collateral": "pre_sales",
+      "metric": "What's the Distributor's average MG size for the given producer(s) (in the last 18 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 9.0,
+      "row": 37
+    },
+    {
+      "key": "pre_sales_m32",
+      "collateral": "pre_sales",
+      "metric": "What's the Distributor's average MG size for the given set of film tag(s) (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 8.0,
+      "row": 38
+    },
+    {
+      "key": "pre_sales_m33",
+      "collateral": "pre_sales",
+      "metric": "What's the Distributor's average MG size for the given set of film tag(s) (in the last 18 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 9.0,
+      "row": 39
+    },
+    {
+      "key": "pre_sales_m34",
+      "collateral": "pre_sales",
+      "metric": "What's the Distributor's average MG deposit percentage (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 1.0,
+      "row": 40
+    },
+    {
+      "key": "pre_sales_m35",
+      "collateral": "pre_sales",
+      "metric": "What's the Distributor's average MG deposit percentage (in the last 18 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 1.0,
+      "row": 41
+    },
+    {
+      "key": "pre_sales_m36",
+      "collateral": "pre_sales",
+      "metric": "How long has the Distributor been operating in the territory?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 1.0,
+      "row": 42
+    },
+    {
+      "key": "pre_sales_m37",
+      "collateral": "pre_sales",
+      "metric": "Do the Distributor's owners and senior management have any history of bankruptcy?",
+      "category": "Performance & Track Record",
+      "type": "Qualitative",
+      "weight": 1.0,
+      "row": 43
+    }
+  ],
+  "gap_unsold": [
+    {
+      "key": "gap_unsold_m00",
+      "collateral": "gap_unsold",
+      "metric": "What's the average sales accuracy ratio for the sales agent (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 9.0,
+      "row": 6
+    },
+    {
+      "key": "gap_unsold_m01",
+      "collateral": "gap_unsold",
+      "metric": "What's the average sales accuracy ratio for the sales agent (in the last 18 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 10.0,
+      "row": 7
+    },
+    {
+      "key": "gap_unsold_m02",
+      "collateral": "gap_unsold",
+      "metric": "What's the average sales value variance of the territory given the project's budget (historically) ?",
+      "category": "Territory Volatility",
+      "type": "Quantitative",
+      "weight": 6.0,
+      "row": 8
+    },
+    {
+      "key": "gap_unsold_m03",
+      "collateral": "gap_unsold",
+      "metric": "What's the average sales value variance of the territory given the project's budget (in the last 18 mo)?",
+      "category": "Territory Volatility",
+      "type": "Quantitative",
+      "weight": 7.0,
+      "row": 9
+    },
+    {
+      "key": "gap_unsold_m04",
+      "collateral": "gap_unsold",
+      "metric": "What's the average sales value variance of the territory given the project's lead talent  (historically)?",
+      "category": "Territory Volatility",
+      "type": "Quantitative",
+      "weight": 6.0,
+      "row": 10
+    },
+    {
+      "key": "gap_unsold_m05",
+      "collateral": "gap_unsold",
+      "metric": "What's the average sales value variance of the territory given the project's lead talent (in the last 18 mo)?",
+      "category": "Territory Volatility",
+      "type": "Quantitative",
+      "weight": 7.0,
+      "row": 11
+    },
+    {
+      "key": "gap_unsold_m06",
+      "collateral": "gap_unsold",
+      "metric": "What's the average sales value variance of the territory given the project's genre (historically)?",
+      "category": "Territory Volatility",
+      "type": "Quantitative",
+      "weight": 6.0,
+      "row": 12
+    },
+    {
+      "key": "gap_unsold_m07",
+      "collateral": "gap_unsold",
+      "metric": "What's the average sales value variance of the territory given the project's genre (in the last 18 mo)?",
+      "category": "Territory Volatility",
+      "type": "Quantitative",
+      "weight": 7.0,
+      "row": 13
+    },
+    {
+      "key": "gap_unsold_m08",
+      "collateral": "gap_unsold",
+      "metric": "What's the average sales value of the territory for the project's genre (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 6.0,
+      "row": 14
+    },
+    {
+      "key": "gap_unsold_m09",
+      "collateral": "gap_unsold",
+      "metric": "What's the average sales value of the territory for the project's genre (in the last 18 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 7.0,
+      "row": 15
+    },
+    {
+      "key": "gap_unsold_m10",
+      "collateral": "gap_unsold",
+      "metric": "What's the average sales value of the territory for the project's lead talent (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 5.0,
+      "row": 16
+    },
+    {
+      "key": "gap_unsold_m11",
+      "collateral": "gap_unsold",
+      "metric": "What's the average sales value of the territory for the project's lead talent (in the last 18 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 6.0,
+      "row": 17
+    },
+    {
+      "key": "gap_unsold_m12",
+      "collateral": "gap_unsold",
+      "metric": "What's the average sales value of the territory for the project's budget range (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 7.0,
+      "row": 18
+    },
+    {
+      "key": "gap_unsold_m13",
+      "collateral": "gap_unsold",
+      "metric": "What's the average sales value of the territory for the project's budget range (in the last 18 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 8.0,
+      "row": 19
+    },
+    {
+      "key": "gap_unsold_m14",
+      "collateral": "gap_unsold",
+      "metric": "What's the average sales value of the territory for the project's director (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 7.0,
+      "row": 20
+    },
+    {
+      "key": "gap_unsold_m15",
+      "collateral": "gap_unsold",
+      "metric": "What's the average sales value of the territory for the project's director (in the last 18 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 8.0,
+      "row": 21
+    },
+    {
+      "key": "gap_unsold_m16",
+      "collateral": "gap_unsold",
+      "metric": "What's the average sales value of the territory for the project's producer(s) (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 7.0,
+      "row": 22
+    },
+    {
+      "key": "gap_unsold_m17",
+      "collateral": "gap_unsold",
+      "metric": "What's the average sales value of the territory for the project's producer(s) (in the last 18 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 8.0,
+      "row": 23
+    },
+    {
+      "key": "gap_unsold_m18",
+      "collateral": "gap_unsold",
+      "metric": "What's the average sales value of the territory for the project's given set of film tag(s) (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 7.0,
+      "row": 24
+    },
+    {
+      "key": "gap_unsold_m19",
+      "collateral": "gap_unsold",
+      "metric": "What's the average sales value of the territory for the project's given set of film tag(s) (in the last 18 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 8.0,
+      "row": 25
+    },
+    {
+      "key": "gap_unsold_m20",
+      "collateral": "gap_unsold",
+      "metric": "How many distributors are operating within a given territory?",
+      "category": "Market Landscape",
+      "type": "Quantitative",
+      "weight": 1.0,
+      "row": 26
+    },
+    {
+      "key": "gap_unsold_m21",
+      "collateral": "gap_unsold",
+      "metric": "What's the average sales accuracy ratio for Ashland (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 9.0,
+      "row": 27
+    },
+    {
+      "key": "gap_unsold_m22",
+      "collateral": "gap_unsold",
+      "metric": "What's the average sales accuracy ratio for Ashland (in the last 18 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 10.0,
+      "row": 28
+    }
+  ],
+  "tax_credit": [
+    {
+      "key": "tax_credit_m00",
+      "collateral": "tax_credit",
+      "metric": "How long it takes this local authority to pay its tax credit?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 6.0,
+      "row": 6
+    },
+    {
+      "key": "tax_credit_m01",
+      "collateral": "tax_credit",
+      "metric": "How consistent has the payment timeframe been for this tax credit (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 7.0,
+      "row": 7
+    },
+    {
+      "key": "tax_credit_m02",
+      "collateral": "tax_credit",
+      "metric": "What's the variance between expected payment and actual payment (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 7.0,
+      "row": 8
+    },
+    {
+      "key": "tax_credit_m03",
+      "collateral": "tax_credit",
+      "metric": "What's the variance between expected payment and actual payment (in the last 18 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 8.0,
+      "row": 9
+    },
+    {
+      "key": "tax_credit_m04",
+      "collateral": "tax_credit",
+      "metric": "What's the overall stability of finance policy in that country/state with respect to film and creative fields?",
+      "category": "Stability of Jurisdiction",
+      "type": "Qualitative",
+      "weight": 9.0,
+      "row": 10
+    },
+    {
+      "key": "tax_credit_m05",
+      "collateral": "tax_credit",
+      "metric": "Has there been any recent change of representative within the relevant local bodies that govern this legislation?",
+      "category": "Stability of Jurisdiction",
+      "type": "Qualitative",
+      "weight": 6.0,
+      "row": 11
+    },
+    {
+      "key": "tax_credit_m06",
+      "collateral": "tax_credit",
+      "metric": "What's the total allocated budget for film/creative tax credit for that local authority/region?",
+      "category": "Stability of Jurisdiction",
+      "type": "Quantitative",
+      "weight": 6.0,
+      "row": 12
+    },
+    {
+      "key": "tax_credit_m07",
+      "collateral": "tax_credit",
+      "metric": "Is it a transferable or rebatable tax credit?",
+      "category": "FX Risk",
+      "type": "Qualitative",
+      "weight": 1.0,
+      "row": 13
+    },
+    {
+      "key": "tax_credit_m08",
+      "collateral": "tax_credit",
+      "metric": "Is the Tax Credit in USD or a foreign currency?",
+      "category": "FX Risk",
+      "type": "Qualitative",
+      "weight": 1.0,
+      "row": 14
+    },
+    {
+      "key": "tax_credit_m09",
+      "collateral": "tax_credit",
+      "metric": "Is the Tax Credit hedge-able?",
+      "category": "FX Risk",
+      "type": "Qualitative",
+      "weight": 1.0,
+      "row": 15
+    },
+    {
+      "key": "tax_credit_m10",
+      "collateral": "tax_credit",
+      "metric": "Who is the Tax Credit Auditor (for production and accounting)?",
+      "category": "Execution Risk",
+      "type": "Qualitative",
+      "weight": 1.0,
+      "row": 16
+    },
+    {
+      "key": "tax_credit_m11",
+      "collateral": "tax_credit",
+      "metric": "How many Tax Credit are we currently banking with this Auditor?",
+      "category": "Concentration Risk",
+      "type": "Quantitative",
+      "weight": 7.0,
+      "row": 17
+    },
+    {
+      "key": "tax_credit_m12",
+      "collateral": "tax_credit",
+      "metric": "What's the average time the Auditor takes to prepare and file the accounts?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 6.0,
+      "row": 18
+    },
+    {
+      "key": "tax_credit_m13",
+      "collateral": "tax_credit",
+      "metric": "What is the average timeline for full payment of the Tax Credit given this Auditor?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 8.0,
+      "row": 19
+    },
+    {
+      "key": "tax_credit_m14",
+      "collateral": "tax_credit",
+      "metric": "How consistent has the payment timeframe been for this Auditor submissions (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 9.0,
+      "row": 20
+    },
+    {
+      "key": "tax_credit_m15",
+      "collateral": "tax_credit",
+      "metric": "What is the variance between the opinion letter's expected payment and the actual payment (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 9.0,
+      "row": 21
+    },
+    {
+      "key": "tax_credit_m16",
+      "collateral": "tax_credit",
+      "metric": "What is the variance between the opinion letter's expected payment and the actual payment (in the last 18 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 10.0,
+      "row": 22
+    },
+    {
+      "key": "tax_credit_m17",
+      "collateral": "tax_credit",
+      "metric": "How many times has this Auditor been quired about its submission/application (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 9.0,
+      "row": 23
+    },
+    {
+      "key": "tax_credit_m18",
+      "collateral": "tax_credit",
+      "metric": "How many times has this Auditor been quired about its submission/application (in the last 18 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 10.0,
+      "row": 24
+    },
+    {
+      "key": "tax_credit_m19",
+      "collateral": "tax_credit",
+      "metric": "What is the average qualifying spend (in percentage) that this auditor accounts for (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 7.0,
+      "row": 25
+    },
+    {
+      "key": "tax_credit_m20",
+      "collateral": "tax_credit",
+      "metric": "What is the average qualifying spend (in percentage) that this auditor accounts for (in the last 18 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 8.0,
+      "row": 26
+    },
+    {
+      "key": "tax_credit_m21",
+      "collateral": "tax_credit",
+      "metric": "How many Tax Credit is Ashland currently banking from this local authority?",
+      "category": "Concentration Risk",
+      "type": "Quantitative",
+      "weight": 5.0,
+      "row": 27
+    },
+    {
+      "key": "tax_credit_m22",
+      "collateral": "tax_credit",
+      "metric": "How many Tax Credit has Ashland (or its team) banked from this authority/region (historically)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 9.0,
+      "row": 28
+    },
+    {
+      "key": "tax_credit_m23",
+      "collateral": "tax_credit",
+      "metric": "How many Tax Credit has Ashland (or its team) banked from this authority/region (in the last 36 mo)?",
+      "category": "Performance & Track Record",
+      "type": "Quantitative",
+      "weight": 10.0,
+      "row": 29
+    },
+    {
+      "key": "tax_credit_m24",
+      "collateral": "tax_credit",
+      "metric": "Does this TC need a special person to oversee production through it to correct filing? If so, does Ashland know/have one in its network?",
+      "category": "Performance & Track Record",
+      "type": "Qualitative",
+      "weight": 1.0,
+      "row": 30
+    }
+  ]
+}

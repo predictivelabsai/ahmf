@@ -1,8 +1,8 @@
-# Ashland Hill Media Finance
+# Monika
 
-AI-powered operating system for film financing — deal management, sales estimates, production risk scoring, budgeting, scheduling, tax incentives, closing automation, audience intelligence, and talent analysis.
+**Ashland Hill Media Finance** — AI-powered operating system for film financing: deal management, sales estimates, counterparty credit scoring, production risk, budgeting, scheduling, tax incentives, closing automation, audience intelligence, and talent analysis.
 
-![AHMF Demo](docs/demo_video.gif)
+![Monika Demo](docs/demo_video.gif)
 
 ## Features
 
@@ -37,8 +37,8 @@ schedule:new       audience:new       help
 
 ```bash
 # Clone
-git clone https://github.com/predictivelabsai/ahmf.git
-cd ahmf
+git clone https://github.com/predictivelabsai/monika.git
+cd monika
 
 # Setup with uv
 uv venv

@@ -33,7 +33,7 @@ from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
 
 SYSTEM_PROMPT = (
-    "You are AHMF, an AI assistant for Ashland Hill Media Finance — a film financing company. "
+    "You are Monika, the AI assistant for Ashland Hill Media Finance — a film financing company. "
     "You help underwriters, investment committees, and production teams with: "
     "deal management, sales estimates, production risk assessment, budgeting, and market intelligence. "
     "You have access to TMDB and OMDB for movie/film data. "
@@ -866,10 +866,10 @@ def _help_expanders():
 def _left_pane(user=None):
     return Div(
         Div(
-            Div("AH", cls="sidebar-logo-icon"),
+            Div("M", cls="sidebar-logo-icon"),
             Div(
-                Div("Ashland Hill", cls="sidebar-logo-text"),
-                Div("Media Finance", cls="sidebar-logo-sub"),
+                Div("Monika", cls="sidebar-logo-text"),
+                Div("Ashland Hill Media Finance", cls="sidebar-logo-sub"),
             ),
             cls="sidebar-logo",
         ),
@@ -894,6 +894,7 @@ def _left_pane(user=None):
             _sidebar_item("contacts", "Contacts", "loadModule('/module/contacts', 'Contacts')", item_id="nav-contacts"),
             _sidebar_item("sales", "Sales & Collections", "loadModule('/module/sales', 'Sales & Collections')", item_id="nav-sales"),
             _sidebar_item("credit", "Credit Rating", "loadModule('/module/credit', 'Credit Rating')", item_id="nav-credit"),
+            _sidebar_item("risk", "Credit Scoring (ML)", "loadModule('/module/scoring', 'Credit Scoring')", item_id="nav-scoring"),
             _sidebar_item("accounting", "Accounting", "loadModule('/module/accounting', 'Accounting')", item_id="nav-accounting"),
             _sidebar_item("comms", "Communications", "loadModule('/module/comms', 'Communications')", item_id="nav-comms"),
             cls="sidebar-section",
@@ -950,7 +951,7 @@ def login_page(session):
     if session.get("user_id"):
         return RedirectResponse("/", status_code=303)
     return Titled(
-        "AHMF — Login",
+        "Monika — Login",
         Style(APP_CSS),
         Div(
             H2("Sign In", style="text-align:center; margin-bottom:1.5rem;"),
@@ -975,7 +976,7 @@ def login_submit(email: str, password: str, session):
     user = authenticate(email, password)
     if not user:
         return Titled(
-            "AHMF — Login",
+            "Monika — Login",
             Style(APP_CSS),
             Div(
                 H2("Sign In", style="text-align:center; margin-bottom:1.5rem;"),
@@ -1003,7 +1004,7 @@ def register_page(session):
     if session.get("user_id"):
         return RedirectResponse("/", status_code=303)
     return Titled(
-        "AHMF — Register",
+        "Monika — Register",
         Style(APP_CSS),
         Div(
             H2("Create Account", style="text-align:center; margin-bottom:1.5rem;"),
@@ -1028,7 +1029,7 @@ def register_submit(email: str, password: str, display_name: str, session):
     user = create_user(email, password, display_name=display_name)
     if not user:
         return Titled(
-            "AHMF — Register",
+            "Monika — Register",
             Style(APP_CSS),
             Div(
                 H2("Create Account", style="text-align:center; margin-bottom:1.5rem;"),
@@ -1313,6 +1314,7 @@ from modules.sales import register_routes as sales_routes
 from modules.credit import register_routes as credit_routes
 from modules.accounting import register_routes as accounting_routes
 from modules.comms import register_routes as comms_routes
+from modules.scoring import register_routes as scoring_routes
 
 risk_routes(rt)
 budget_routes(rt)
@@ -1326,6 +1328,7 @@ sales_routes(rt)
 credit_routes(rt)
 accounting_routes(rt)
 comms_routes(rt)
+scoring_routes(rt)
 
 
 # ---------------------------------------------------------------------------
@@ -1358,7 +1361,7 @@ def index(session, new: str = "", thread: str = ""):
     }
 
     return (
-        Title("AHMF — Ashland Hill Media Finance"),
+        Title("Monika — Ashland Hill Media Finance"),
         Style(APP_CSS),
         Div(
             _left_pane(user),

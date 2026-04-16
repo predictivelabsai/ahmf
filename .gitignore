@@ -205,3 +205,19 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Playwright / scratch outputs
+.playwright-mcp/
+fasthtml-ctx.txt
+
+# Regression-suite outputs (regeneratable)
+screenshots/
+test-data/regression_summary.json
+test-data/pw_*.png
+test-data/table_light_*.png
+
+# Source spec archives and heavyweight PDFs (keep xlsx + wireframe JPGs)
+specs/*.zip
+specs/extracted/**/FINANCE - Statement of Work/
+specs/extracted/**/SALES - Product Prototype/
+docs/AH - Tech Roadmap*.pdf
