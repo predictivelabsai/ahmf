@@ -29,19 +29,19 @@ TAGLINE = "The film financing operating system, brought to you by Ashland Hill M
 CONTACT_EMAIL = "info@ashland-hill.com"
 
 
-# Sunset / Pacific palette — warm cream base, magenta-orange accents,
-# deep palm-green and twilight-navy ink.
+# Ashland Hill palette — white body, deep teal-navy dark sections,
+# gold accent, twilight-silhouette hero. Mirrors ashland-hill.com.
 TAILWIND_CONFIG = """
 tailwind.config = {
   theme: {
     extend: {
       colors: {
-        bg:   { DEFAULT: '#FFF6EC', elevated: '#FFEDDB', raised: '#FFFAF2' },
-        ink:  { DEFAULT: '#1B1F2E', muted: '#4D5366', dim: '#838997' },
-        line: { DEFAULT: '#F1D4B0', bright: '#E2B27D' },
-        accent: { DEFAULT: '#FF6B3D', deep: '#C73E12', dim: '#FFE0CD' },
-        sun:    { 1: '#FFC07A', 2: '#FF8E53', 3: '#FF5A6E', 4: '#A03A8C' },
-        palm:   { DEFAULT: '#1F4D3D', dim: '#2E6B57' },
+        bg:   { DEFAULT: '#FFFFFF', elevated: '#F7F5F1', raised: '#FFFFFF' },
+        ink:  { DEFAULT: '#111111', muted: '#444444', dim: '#7A7A7A' },
+        line: { DEFAULT: '#E8E4DC', bright: '#CFC8B8' },
+        accent: { DEFAULT: '#D6AE6E', deep: '#A88445', dim: '#F1E4C9' },
+        deep:   { DEFAULT: '#091C25', alt: '#0E2A36', soft: '#15384A' },
+        twilight: { 1: '#0A1A24', 2: '#1A2C3A', 3: '#9A6E3F', 4: '#E3A658' },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
@@ -58,29 +58,38 @@ tailwind.config = {
 """
 
 
-# Inline CSS for the hero sunset + palm silhouettes. Keeps the landing page
-# free of any external image dependencies.
+# Hero CSS: twilight gradient (deep navy → muted amber horizon → black)
+# with palm silhouettes — matches the Ashland Hill homepage register.
 LANDING_CSS = """
-.sunset-bg {
+.twilight-bg {
   background:
-    radial-gradient(120% 80% at 50% 100%, #FFC07A 0%, #FF8E53 28%, #FF5A6E 55%, #A03A8C 78%, #2C2455 100%);
+    linear-gradient(180deg,
+      #050D14 0%,
+      #091C25 32%,
+      #142B36 52%,
+      #4A3A2A 70%,
+      #B27A38 84%,
+      #5C2E14 92%,
+      #050608 100%);
 }
-.sunset-disc {
+.twilight-glow {
   position: absolute;
-  bottom: 18%;
-  left: 50%;
-  width: 320px;
-  height: 320px;
-  margin-left: -160px;
-  border-radius: 9999px;
-  background: radial-gradient(circle, #FFE7B3 0%, #FFB76A 35%, #FF6B3D 60%, rgba(255,107,61,0) 78%);
-  filter: blur(2px);
-  opacity: 0.95;
+  bottom: 12%;
+  left: 0; right: 0;
+  height: 22%;
+  background: radial-gradient(60% 100% at 50% 100%,
+    rgba(227, 166, 88, 0.55) 0%,
+    rgba(178, 122, 56, 0.35) 35%,
+    rgba(9, 28, 37, 0) 75%);
   pointer-events: none;
+  filter: blur(1px);
 }
-.sunset-haze {
+.twilight-haze {
   position: absolute; inset: 0;
-  background: linear-gradient(180deg, rgba(255,107,61,0) 0%, rgba(28,18,46,0.0) 55%, rgba(28,18,46,0.45) 100%);
+  background: linear-gradient(180deg,
+    rgba(5, 13, 20, 0) 0%,
+    rgba(5, 13, 20, 0.0) 55%,
+    rgba(5, 6, 8, 0.55) 100%);
   pointer-events: none;
 }
 .palm {
@@ -89,7 +98,7 @@ LANDING_CSS = """
   width: 220px;
   height: 360px;
   pointer-events: none;
-  opacity: 0.92;
+  opacity: 0.95;
 }
 .palm--left  { left: -20px; }
 .palm--right { right: -20px; transform: scaleX(-1); }
@@ -99,18 +108,19 @@ LANDING_CSS = """
 .horizon {
   position: absolute;
   left: 0; right: 0; bottom: 0;
-  height: 28%;
-  background: linear-gradient(180deg, rgba(28,18,46,0) 0%, rgba(28,18,46,0.65) 100%);
+  height: 24%;
+  background: linear-gradient(180deg, rgba(5, 6, 8, 0) 0%, rgba(5, 6, 8, 0.85) 100%);
   pointer-events: none;
 }
 .product-card { transition: transform 200ms ease, border-color 200ms ease; }
-.product-card:hover { transform: translateY(-2px); border-color: #FF6B3D; }
+.product-card:hover { transform: translateY(-2px); border-color: #D6AE6E; }
 .poster {
   aspect-ratio: 2/3;
   width: 100%;
   object-fit: cover;
-  background: #1B1F2E;
+  background: #091C25;
   display: block;
+  border-radius: 0.75rem;
 }
 .poster-card { transition: transform 200ms ease; }
 .poster-card:hover { transform: translateY(-3px); }
@@ -119,9 +129,16 @@ LANDING_CSS = """
   aspect-ratio: 1/1;
   width: 100%;
   object-fit: cover;
-  background: #FFEDDB;
+  background: #F7F5F1;
   display: block;
-  filter: saturate(0.9);
+  filter: saturate(0.85);
+}
+.gold-rule {
+  display: inline-block;
+  width: 80px;
+  height: 1px;
+  background: #D6AE6E;
+  margin: 0 auto;
 }
 """
 
@@ -174,7 +191,7 @@ PALM_SVG_RIGHT = NotStr(
 # ---------------------------------------------------------------------------
 
 def _eyebrow(text, *, on_dark=False):
-    color = "text-sun-1" if on_dark else "text-accent"
+    color = "text-accent" if not on_dark else "text-accent"
     return Span(text, cls=f"font-mono text-[11px] tracking-[0.18em] uppercase {color}")
 
 
@@ -191,11 +208,11 @@ def _heading(level, text, *, cls="", on_dark=False):
 
 
 def _btn(text, *, href="#", primary=True, cls="", target=None):
-    base = "inline-flex items-center gap-2 px-5 py-3 rounded-full text-sm font-medium transition-all duration-200"
+    base = "inline-flex items-center gap-2 px-5 py-3 text-sm font-medium tracking-wide uppercase transition-all duration-200"
     if primary:
-        style = "bg-accent text-bg-raised hover:bg-accent-deep shadow-[0_0_0_1px_#FF6B3D] hover:shadow-[0_0_0_1px_#C73E12]"
+        style = "bg-accent text-ink hover:bg-accent-deep hover:text-bg-raised border border-accent"
     else:
-        style = "bg-transparent text-ink border border-line-bright hover:border-accent hover:text-accent"
+        style = "bg-transparent text-ink border border-ink/30 hover:border-accent hover:text-accent"
     kw = {"href": href, "cls": f"{base} {style} {cls}".strip()}
     if target:
         kw["target"] = target
@@ -204,11 +221,11 @@ def _btn(text, *, href="#", primary=True, cls="", target=None):
 
 
 def _btn_on_dark(text, *, href="#", primary=True, cls=""):
-    base = "inline-flex items-center gap-2 px-5 py-3 rounded-full text-sm font-medium transition-all duration-200"
+    base = "inline-flex items-center gap-2 px-5 py-3 text-sm font-medium tracking-wide uppercase transition-all duration-200"
     if primary:
-        style = "bg-bg-raised text-ink hover:bg-accent hover:text-bg-raised"
+        style = "bg-accent text-ink hover:bg-accent-deep hover:text-bg-raised border border-accent"
     else:
-        style = "bg-transparent text-bg-raised border border-bg-raised/40 hover:border-bg-raised hover:bg-bg-raised/10"
+        style = "bg-transparent text-bg-raised border border-bg-raised/40 hover:border-accent hover:text-accent"
     return A(text, Span("→", cls="text-base"), href=href, cls=f"{base} {style} {cls}".strip())
 
 
@@ -342,25 +359,25 @@ def _hero():
     return Section(
         Div(
             Div(
-                Div(cls="sunset-disc"),
-                Div(cls="sunset-haze"),
                 PALM_SVG,
                 PALM_SVG_RIGHT,
+                Div(cls="twilight-glow"),
+                Div(cls="twilight-haze"),
                 Div(cls="horizon"),
-                cls="absolute inset-0 sunset-bg overflow-hidden",
+                cls="absolute inset-0 twilight-bg overflow-hidden",
             ),
             Div(
                 _eyebrow("Monika · From Ashland Hill Media Finance", on_dark=True),
                 H1(
                     Span("The film financing "),
-                    Span("operating system", cls="text-sun-1"),
+                    Span("operating system", cls="text-accent"),
                     Span(" for the next decade of independent cinema."),
                     cls="mt-5 md:mt-6 text-[40px] sm:text-5xl md:text-7xl lg:text-[78px] font-medium tracking-tightest text-bg-raised leading-[1.05] md:leading-[1.02] max-w-5xl",
                 ),
                 P(
                     "Monika is the AI-driven workspace for film and media finance — built by ",
                     A(PARENT_NAME, href=PARENT_URL, target="_blank", rel="noopener",
-                      cls="underline decoration-sun-1/70 underline-offset-4 hover:decoration-sun-1 text-bg-raised"),
+                      cls="underline decoration-accent/70 underline-offset-4 hover:decoration-accent text-bg-raised"),
                     " in Santa Monica. Underwriting, sales estimates, production risk, smart budgets, soft-funding discovery, talent intelligence and a full data room — in one operator-grade workspace, run on a slate that has closed hundreds of deals and deployed billions to independent film and TV.",
                     cls="mt-6 md:mt-8 text-base md:text-xl text-bg-raised/85 max-w-2xl leading-relaxed",
                 ),
@@ -724,7 +741,7 @@ def _cta():
                 ),
                 cls="max-w-7xl mx-auto px-6 py-20 md:py-28 relative z-10",
             ),
-            Div(cls="absolute inset-0 bg-gradient-to-br from-accent/15 via-transparent to-sun-4/10 pointer-events-none"),
+            Div(cls="absolute inset-0 bg-gradient-to-br from-accent/10 via-transparent to-deep/5 pointer-events-none"),
             cls="relative border-y border-line bg-bg-elevated/60 overflow-hidden",
         ),
     )
