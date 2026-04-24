@@ -356,589 +356,179 @@ def health_check():
 # Layout CSS
 # ---------------------------------------------------------------------------
 
-APP_CSS = """
-* { margin: 0; padding: 0; box-sizing: border-box; }
-html, body { height: 100vh; overflow: hidden; }
+APP_CSS = ""  # CSS now in static/app.css
 
-/* === 3-Pane Grid === */
-.app-layout {
-  display: grid;
-  grid-template-columns: 260px 1fr;
-  height: 100vh;
-  transition: grid-template-columns 0.3s ease;
-}
-
-.app-layout .right-pane { display: none; }
-
-.app-layout.right-open {
-  grid-template-columns: 260px 1fr 380px;
-}
-
-.app-layout.right-open .right-pane { display: flex; }
-
-/* === Left Pane (Sidebar) === */
-.left-pane {
-  background: #f8fafc;
-  border-right: 1px solid #e2e8f0;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  height: 100vh;
-}
-
-.sidebar-logo {
-  padding: 1.25rem 1rem;
-  border-bottom: 1px solid #e2e8f0;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.sidebar-logo-icon {
-  width: 36px; height: 36px;
-  background: linear-gradient(135deg, #0066cc, #004d99);
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  color: white; font-weight: 700; font-size: 0.9rem;
-}
-
-.sidebar-logo-text {
-  font-size: 0.9rem; font-weight: 700; color: #1e293b;
-}
-
-.sidebar-logo-sub {
-  font-size: 0.65rem; color: #64748b; margin-top: 0.1rem;
-}
-
-.sidebar-section {
-  padding: 0.75rem 0;
-}
-
-.sidebar-section-title {
-  padding: 0 1rem 0.5rem;
-  font-size: 0.65rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #94a3b8;
-}
-
-.sidebar-item {
-  display: flex; align-items: center; gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  font-size: 0.8rem;
-  color: #475569;
-  cursor: pointer;
-  transition: all 0.15s;
-  text-decoration: none;
-  border: none;
-  background: none;
-  width: 100%;
-  text-align: left;
-}
-
-.sidebar-item:hover { background: #e2e8f0; color: #1e293b; }
-.sidebar-item.active { background: #dbeafe; color: #0066cc; font-weight: 600; }
-
-.sidebar-item-icon {
-  width: 18px; height: 18px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-
-.sidebar-badge {
-  margin-left: auto;
-  background: #0066cc;
-  color: white;
-  font-size: 0.6rem;
-  padding: 0.1rem 0.4rem;
-  border-radius: 1rem;
-  font-weight: 600;
-}
-
-.sidebar-badge.coming { background: #94a3b8; }
-
-.sidebar-footer {
-  margin-top: auto;
-  padding: 1rem;
-  border-top: 1px solid #e2e8f0;
-}
-
-/* === Center Pane === */
-.center-pane {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  overflow: hidden;
-}
-
-.center-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #e2e8f0;
-  background: #ffffff;
-  min-height: 50px;
-}
-
-.center-header h2 {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0;
-}
-
-.center-chat { flex: 1; overflow: hidden; }
-
-.header-btn {
-  padding: 0.4rem 0.6rem;
-  background: none; border: 1px solid #e2e8f0;
-  border-radius: 6px; cursor: pointer; font-size: 0.75rem; color: #64748b;
-  transition: all 0.15s;
-}
-.header-btn:hover { background: #f1f5f9; color: #1e293b; }
-
-/* === Right Pane === */
-.right-pane {
-  background: #ffffff;
-  border-left: 1px solid #e2e8f0;
-  flex-direction: column;
-  height: 100vh;
-  overflow: hidden;
-}
-
-.right-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #e2e8f0;
-  min-height: 50px;
-}
-
-.right-header h3 {
-  font-size: 0.85rem; font-weight: 600; color: #1e293b; margin: 0;
-}
-
-.right-tabs {
-  display: flex; gap: 0.5rem; padding: 0.5rem 1rem;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.right-tab {
-  padding: 0.35rem 0.75rem; font-size: 0.75rem;
-  border: 1px solid transparent; border-radius: 6px;
-  cursor: pointer; background: none; color: #64748b;
-  transition: all 0.15s;
-}
-.right-tab:hover { background: #f1f5f9; }
-.right-tab.active { background: #dbeafe; color: #0066cc; border-color: #93c5fd; }
-
-.right-content {
-  flex: 1; overflow-y: auto; padding: 1rem;
-}
-
-#trace-content, #detail-content {
-  font-size: 0.8rem; color: #475569;
-}
-
-.trace-entry {
-  padding: 0.4rem 0.5rem;
-  border-left: 3px solid #e2e8f0;
-  margin-bottom: 0.4rem;
-  font-size: 0.75rem;
-}
-.trace-label { font-weight: 600; color: #1e293b; }
-.trace-detail { color: #64748b; margin-left: 0.5rem; }
-.trace-run-start { border-color: #0066cc; }
-.trace-run-end { border-color: #16a34a; }
-.trace-tool-active { border-color: #f59e0b; }
-.trace-tool-done { border-color: #16a34a; }
-.trace-error { border-color: #dc2626; }
-
-/* === Auth Forms === */
-.auth-container {
-  max-width: 400px; margin: 3rem auto; padding: 2rem;
-}
-
-.auth-form {
-  display: flex; flex-direction: column; gap: 1rem;
-}
-
-.auth-form input {
-  padding: 0.6rem 0.75rem;
-  border: 1px solid #e2e8f0; border-radius: 8px;
-  font-size: 0.875rem; font-family: inherit;
-  background: #f8fafc;
-}
-.auth-form input:focus { outline: none; border-color: #0066cc; box-shadow: 0 0 0 3px rgba(0,102,204,0.1); }
-
-.auth-btn {
-  padding: 0.6rem 1rem;
-  background: #0066cc; color: white; border: none; border-radius: 8px;
-  font-size: 0.875rem; font-weight: 600; cursor: pointer;
-  transition: background 0.15s;
-}
-.auth-btn:hover { background: #0052a3; }
-
-.auth-link { font-size: 0.8rem; color: #0066cc; text-align: center; }
-
-/* === Module Content === */
-.module-content {
-  padding: 1.5rem;
-  overflow-y: auto;
-  height: 100%;
-}
-
-.module-content h1 { font-size: 1.5rem; font-weight: 700; color: #1e293b; margin-bottom: 1rem; }
-.module-content h2 { font-size: 1.125rem; font-weight: 600; color: #1e293b; margin-bottom: 0.75rem; }
-
-.stats-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem; margin-bottom: 1.5rem;
-}
-
-.stat-card {
-  background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;
-  padding: 1.25rem; transition: all 0.2s;
-}
-.stat-card:hover { border-color: #93c5fd; box-shadow: 0 2px 8px rgba(0,102,204,0.08); }
-.stat-label { font-size: 0.7rem; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em; }
-.stat-value { font-size: 1.75rem; font-weight: 700; color: #1e293b; margin-top: 0.25rem; }
-
-.deal-card {
-  background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;
-  padding: 1rem; margin-bottom: 0.75rem; cursor: pointer; transition: all 0.2s;
-}
-.deal-card:hover { border-color: #93c5fd; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,102,204,0.08); }
-
-.deal-card-title { font-size: 0.9rem; font-weight: 600; color: #1e293b; }
-.deal-card-meta { font-size: 0.75rem; color: #64748b; margin-top: 0.25rem; }
-
-.status-pill {
-  display: inline-block; padding: 0.15rem 0.5rem; border-radius: 1rem;
-  font-size: 0.7rem; font-weight: 600;
-}
-.status-pipeline { background: #fef3c7; color: #92400e; }
-.status-active { background: #dcfce7; color: #166534; }
-.status-closed { background: #f1f5f9; color: #475569; }
-.status-declined { background: #fef2f2; color: #991b1b; }
-
-/* === Coming Soon === */
-.coming-soon {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 3rem; text-align: center; height: 100%;
-}
-.coming-soon-icon {
-  width: 64px; height: 64px; background: #f1f5f9; border-radius: 16px;
-  display: flex; align-items: center; justify-content: center;
-  margin-bottom: 1rem; font-size: 1.5rem;
-}
-.coming-soon h2 { font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem; }
-.coming-soon p { font-size: 0.875rem; color: #64748b; max-width: 400px; }
-.coming-soon-features {
-  margin-top: 1.5rem; text-align: left;
-}
-.coming-soon-features li {
-  font-size: 0.8rem; color: #475569; padding: 0.25rem 0;
-}
-
-/* === New Chat Button === */
-.new-chat-btn {
-  width: 100%;
-  padding: 0.5rem;
-  background: transparent;
-  border: 1px solid #e2e8f0;
-  color: #64748b;
-  cursor: pointer;
-  font-size: 0.8rem;
-  font-family: inherit;
-  border-radius: 0.375rem;
-  margin-bottom: 0.5rem;
-  transition: all 0.2s;
-}
-.new-chat-btn:hover { background: #eff6ff; border-color: #93c5fd; color: #0066cc; }
-
-/* === Help Expanders === */
-.help-section { display: flex; flex-direction: column; margin: 0.25rem 0 0.5rem; }
-
-.help-toggle {
-  display: flex; align-items: center; width: 100%;
-  padding: 0.4rem 0.6rem; background: transparent; border: none;
-  color: #475569; cursor: pointer; font-size: 0.75rem;
-  font-family: inherit; border-radius: 0.375rem; transition: all 0.15s;
-}
-.help-toggle:hover { background: #f1f5f9; }
-.help-cnt { margin-left: auto; margin-right: 0.35rem; font-size: 0.65rem; color: #94a3b8; }
-.help-arrow { color: #94a3b8; font-size: 0.6rem; transition: transform 0.2s; }
-.help-toggle.open .help-arrow { transform: rotate(90deg); }
-
-.help-list { display: none; flex-direction: column; padding-left: 0.5rem; }
-.help-list.open { display: flex; }
-
-.help-item {
-  display: block; width: 100%; text-align: left;
-  padding: 0.3rem 0.5rem; background: transparent; border: none;
-  color: #64748b; cursor: pointer; font-size: 0.7rem;
-  font-family: ui-monospace, monospace; border-radius: 0.25rem; transition: all 0.15s;
-}
-.help-item:hover { background: #eff6ff; color: #0066cc; }
-
-/* === Conversation List === */
-.conv-section { margin-top: 0.5rem; }
-
-.conv-item {
-  display: block; padding: 0.35rem 0.6rem; font-size: 0.75rem;
-  color: #64748b; text-decoration: none; border-radius: 0.25rem;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  transition: all 0.15s;
-}
-.conv-item:hover { background: #f1f5f9; color: #1e293b; }
-.conv-active { background: #dbeafe; color: #0066cc; font-weight: 600; }
-
-/* === Responsive === */
-@media (max-width: 768px) {
-  .app-layout { grid-template-columns: 1fr !important; }
-  .left-pane { display: none; }
-  .right-pane { display: none; }
-}
-"""
-
-LAYOUT_JS = """
-function toggleRightPane() {
-    var layout = document.querySelector('.app-layout');
-    layout.classList.toggle('right-open');
-}
-
-/* Help expander toggle */
-function toggleGroup(catId) {
-    var list = document.getElementById(catId);
-    if (!list) return;
-    list.classList.toggle('open');
-    var btn = list.previousElementSibling;
-    if (btn) btn.classList.toggle('open');
-}
-
-/* Fill chat input from sidebar help item */
-function fillChat(cmd) {
-    if (window._aguiProcessing) return;
-    showChat();
-    setTimeout(function() {
-        var ta = document.getElementById('chat-input');
-        if (ta) { ta.value = cmd; ta.focus(); }
-    }, 100);
-}
-
-function showTab(tabName) {
-    document.querySelectorAll('.right-tab').forEach(function(t) { t.classList.remove('active'); });
-    document.querySelectorAll('[data-tab]').forEach(function(c) { c.style.display = 'none'; });
-    var tab = document.querySelector('[data-tab-btn="'+tabName+'"]');
-    var content = document.querySelector('[data-tab="'+tabName+'"]');
-    if (tab) tab.classList.add('active');
-    if (content) content.style.display = 'block';
-}
-
-function loadModule(path, title) {
-    // Load a module page into the center content area
-    var container = document.getElementById('center-content');
-    var chatContainer = document.getElementById('center-chat');
-    if (container && chatContainer) {
-        chatContainer.style.display = 'none';
-        container.style.display = 'block';
-        htmx.ajax('GET', path, {target: '#center-content', swap: 'innerHTML'});
-    }
-    // Update header
-    var h = document.getElementById('center-title');
-    if (h) h.textContent = title;
-    // Update active sidebar
-    document.querySelectorAll('.sidebar-item').forEach(function(i) { i.classList.remove('active'); });
-    event.currentTarget.classList.add('active');
-}
-
-function showChat() {
-    var container = document.getElementById('center-content');
-    var chatContainer = document.getElementById('center-chat');
-    if (container) container.style.display = 'none';
-    if (chatContainer) chatContainer.style.display = 'block';
-    var h = document.getElementById('center-title');
-    if (h) h.textContent = 'AI Chat';
-    document.querySelectorAll('.sidebar-item').forEach(function(i) { i.classList.remove('active'); });
-    var chatBtn = document.getElementById('nav-chat');
-    if (chatBtn) chatBtn.classList.add('active');
-}
-"""
+LAYOUT_JS = ""  # JS now in static/chat.js
 
 
 # ---------------------------------------------------------------------------
 # Sidebar icons (SVG)
 # ---------------------------------------------------------------------------
 
-_ICONS = {
-    "chat": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>',
-    "deals": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>',
-    "contacts": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
-    "sales": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>',
-    "credit": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
-    "accounting": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>',
-    "comms": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>',
-    "estimate": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>',
-    "risk": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
-    "budget": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
-    "schedule": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
-    "funding": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>',
-    "dataroom": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>',
-    "audience": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>',
-    "talent": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
-    "search": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>',
-    "logout": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
-}
-
-
-def _icon(name):
-    return NotStr(_ICONS.get(name, ""))
+from agents.registry import AGENTS, AGENTS_BY_SLUG, AGENTS_BY_CATEGORY, CATEGORIES
 
 
 # ---------------------------------------------------------------------------
 # Layout Components
 # ---------------------------------------------------------------------------
 
-def _sidebar_item(icon_name, label, onclick="", badge=None, item_id="", active=False):
-    badge_el = Span(badge, cls=f"sidebar-badge {'coming' if badge == 'Soon' else ''}") if badge else ""
-    return Button(
-        Span(_icon(icon_name), cls="sidebar-item-icon"),
-        label,
-        badge_el,
-        cls=f"sidebar-item {'active' if active else ''}",
-        onclick=onclick,
-        id=item_id,
+def _agent_browser():
+    """Left-pane browser of all agents, grouped by category."""
+    groups = []
+    for cat in CATEGORIES:
+        agents = AGENTS_BY_CATEGORY.get(cat["key"], [])
+        buttons = [
+            Button(
+                Span(a.icon, cls="aitem-icon"),
+                Span(a.name, cls="aitem-name"),
+                Span(a.prefix, cls="aitem-prefix"),
+                cls="agent-item",
+                onclick=f"fillChat({a.prefix + ' '!r})",
+                title=a.one_liner,
+            )
+            for a in agents
+        ]
+        groups.append(Div(
+            Button(
+                Span(cat["icon"], cls="cat-icon"),
+                Span(cat["name"], cls="cat-name"),
+                Span(f"{len(agents)}", cls="cat-count"),
+                Span("▸", cls="cat-arrow"),
+                cls="cat-toggle",
+                onclick=f"toggleGroup('cat-{cat['key']}')",
+                id=f"btn-cat-{cat['key']}",
+            ),
+            Div(*buttons, cls="agent-list", id=f"cat-{cat['key']}"),
+            cls="agent-group",
+        ))
+    return Div(*groups, cls="agent-browser")
+
+
+def _bottom_nav():
+    items = [
+        ("Pipeline", "/module/pipeline", "◆"),
+        ("User Guide", "#", "✎"),
+    ]
+    links = []
+    for label, href, icon in items:
+        onclick = f"loadModule('{href}', '{label}')" if not href.startswith("http") and href != "#" else ""
+        if label == "User Guide":
+            onclick = "loadModule('/module/guide', 'User Guide')"
+        links.append(A(
+            Span(icon, cls="bottom-nav-icon"),
+            Span(label, cls="bottom-nav-label"),
+            href="#",
+            onclick=onclick,
+            cls="bottom-nav-link",
+        ))
+    return Div(*links, cls="bottom-nav")
+
+
+def _sample_cards():
+    """Gemini-style sample-question cards below the chat input."""
+    prompts = [
+        "deal:list",
+        "estimate: revenue for a $15M horror film with Florence Pugh",
+        "risk: analyze a $20M action film shooting in Georgia",
+        "budget: generate for a $15M drama, 35 days in NYC",
+        "talent:search Florence Pugh",
+        "incentives",
+    ]
+    chips = [
+        Button(
+            Span(p, cls="sample-card-text"),
+            cls="sample-card",
+            onclick=f"fillAndSend({p!r})",
+            title=p,
+        )
+        for p in prompts
+    ]
+    return Div(
+        Div(
+            Span("Try a prompt", cls="sample-cards-label"),
+            id="sample-cards-label",
+        ),
+        Div(*chips, id="sample-cards-row", cls="sample-cards-row"),
+        id="sample-cards",
+        cls="sample-cards",
     )
 
 
-# ---------------------------------------------------------------------------
-# Sidebar Help Commands (click to populate chat)
-# ---------------------------------------------------------------------------
-
-_HELP_CATEGORIES = [
-    ("Deals & Portfolio", [
-        ("deal:list", "List all deals"),
-        ("portfolio", "Portfolio overview"),
-        ("contact:search Distributor", "Search contacts"),
-    ]),
-    ("Sales & Finance", [
-        ("sales:list", "List sales contracts"),
-        ("credit:Test Distributor Corp", "Credit rating lookup"),
-        ("transactions", "Transaction ledger"),
-        ("messages", "Messages & tasks"),
-        ("incentives", "Film tax incentives"),
-    ]),
-    ("AI Analysis", [
-        ("estimate:new", "Sales estimate"),
-        ("risk:new", "Risk assessment"),
-        ("budget:new", "Generate budget"),
-        ("schedule:new", "Shooting schedule"),
-        ("audience:new", "Audience analysis"),
-        ("talent:search Florence Pugh", "Talent search"),
-    ]),
-]
-
-
-def _help_expanders():
-    """Build collapsible help command groups for the sidebar."""
-    groups = []
-    for cat_name, items in _HELP_CATEGORIES:
-        cat_id = f"help-{cat_name.lower().replace(' ', '-').replace('&', '')}"
-        toggle_btn = Button(
-            cat_name,
-            Span(f"{len(items)}", cls="help-cnt"),
-            Span(">", cls="help-arrow"),
-            cls="help-toggle",
-            onclick=f"toggleGroup('{cat_id}')",
-        )
-        tool_items = [
-            Button(cmd, cls="help-item", onclick=f"fillChat({repr(cmd)})", title=desc)
-            for cmd, desc in items
-        ]
-        tool_list = Div(*tool_items, cls="help-list", id=cat_id)
-        groups.append(toggle_btn)
-        groups.append(tool_list)
-    return Div(*groups, cls="help-section")
-
-
 def _left_pane(user=None):
+    user_email = user.get("email", "") if user else None
+    display = user.get("display_name", "User") if user else None
+
+    signin_block = (
+        Div(
+            Span("◇", style="color:var(--accent);"),
+            Span(user_email or display, style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;font-size:.72rem;"),
+            Button("Sign out", style="font-size:.62rem;padding:.15rem .4rem;background:transparent;border:1px solid var(--line-br);border-radius:.3rem;color:var(--ink-dim);cursor:pointer;",
+                   onclick="window.location.href='/logout'"),
+            style="display:flex;align-items:center;gap:.4rem;",
+        )
+        if user else
+        Button("Sign in", onclick="window.location.href='/login'",
+               style="width:100%;padding:.4rem;background:transparent;border:1px solid var(--line-br);border-radius:.45rem;color:var(--ink-muted);cursor:pointer;font-size:.72rem;")
+    )
+
     return Div(
         Div(
-            Div("M", cls="sidebar-logo-icon"),
-            Div(
-                Div("Monika", cls="sidebar-logo-text"),
-                Div("Ashland Hill Media Finance", cls="sidebar-logo-sub"),
-            ),
-            cls="sidebar-logo",
+            A(Span("◐", cls="brand-mark"), Span("Monika"),
+              href="/", cls="brand-link"),
+            Span("Beta", cls="brand-badge"),
+            cls="left-header",
         ),
-        # Chat controls
         Div(
-            Button("+ New Chat", cls="new-chat-btn", onclick="window.location.href='/?new=1'"),
-            _sidebar_item("chat", "AI Chat", "showChat()", item_id="nav-chat", active=True),
-            _sidebar_item("search", "User Guide", "loadModule('/module/guide', 'User Guide')", item_id="nav-guide"),
-            # Help commands
-            _help_expanders(),
-            # Conversation history
+            # Sessions section
             Div(
-                Div("Recent Chats", cls="sidebar-section-title"),
+                Button("+ New chat", cls="new-chat-btn", onclick="window.location.href='/?new=1'"),
+                Div(Span("Sessions", cls="section-label")),
                 Div(id="conv-list", hx_get="/agui-conv/list", hx_trigger="load", hx_swap="innerHTML"),
-                cls="conv-section",
+                cls="sessions-section",
             ),
-            cls="sidebar-section",
+            Hr(cls="left-hr"),
+            # Agents section
+            Div(
+                Div(Span("Agents", cls="section-label")),
+                _agent_browser(),
+                cls="agents-section",
+            ),
+            Hr(cls="left-hr"),
+            # Workspace section
+            Div(
+                Div(Span("Workspace", cls="section-label")),
+                _bottom_nav(),
+                cls="workspace-section",
+            ),
+            cls="left-body",
         ),
-        Div(
-            Div("Film Financing OS", cls="sidebar-section-title"),
-            _sidebar_item("deals", "Deals", "loadModule('/module/deals', 'Deals')", item_id="nav-deals"),
-            _sidebar_item("contacts", "Contacts", "loadModule('/module/contacts', 'Contacts')", item_id="nav-contacts"),
-            _sidebar_item("sales", "Sales & Collections", "loadModule('/module/sales', 'Sales & Collections')", item_id="nav-sales"),
-            _sidebar_item("credit", "Credit Rating", "loadModule('/module/credit', 'Credit Rating')", item_id="nav-credit"),
-            _sidebar_item("risk", "Credit Scoring (ML)", "loadModule('/module/scoring', 'Credit Scoring')", item_id="nav-scoring"),
-            _sidebar_item("accounting", "Accounting", "loadModule('/module/accounting', 'Accounting')", item_id="nav-accounting"),
-            _sidebar_item("comms", "Communications", "loadModule('/module/comms', 'Communications')", item_id="nav-comms"),
-            cls="sidebar-section",
-        ),
-        Div(
-            Div("AI Tools", cls="sidebar-section-title"),
-            _sidebar_item("estimate", "Sales Estimates", "loadModule('/module/estimates', 'Sales Estimates')", item_id="nav-estimates"),
-            _sidebar_item("risk", "Risk Scoring", "loadModule('/module/risk', 'Risk Scoring')", item_id="nav-risk"),
-            _sidebar_item("budget", "Smart Budget", "loadModule('/module/budget', 'Smart Budget')", item_id="nav-budget"),
-            _sidebar_item("schedule", "Scheduling", "loadModule('/module/schedule', 'Scheduling')", item_id="nav-schedule"),
-            _sidebar_item("funding", "Soft Funding", "loadModule('/module/funding', 'Soft Funding')", item_id="nav-funding"),
-            _sidebar_item("dataroom", "Data Room", "loadModule('/module/dataroom', 'Data Room')", item_id="nav-dataroom"),
-            _sidebar_item("audience", "Audience Intel", "loadModule('/module/audience', 'Audience Intel')", item_id="nav-audience"),
-            _sidebar_item("talent", "Talent Intel", "loadModule('/module/talent', 'Talent Intel')", item_id="nav-talent"),
-            cls="sidebar-section",
-        ),
-        # Footer
-        Div(
-            _sidebar_item("logout", user.get("display_name", "User") if user else "Login",
-                           f"window.location.href='/logout'" if user else "window.location.href='/login'"),
-            cls="sidebar-footer",
-        ),
+        Div(signin_block, cls="left-footer"),
         cls="left-pane",
     )
 
 
 def _right_pane():
+    """Canvas pane — starts empty; filled by agent artifacts."""
     return Div(
         Div(
-            H3("Inspector"),
-            Button("X", cls="header-btn", onclick="toggleRightPane()"),
+            Div(H3("Canvas", cls="right-title"),
+                Span("", id="artifact-subtitle", cls="right-subtitle"),
+                cls="right-header-left"),
+            Button("✕", cls="right-close", onclick="toggleArtifactPane()"),
             cls="right-header",
         ),
         Div(
-            Button("Trace", cls="right-tab active", onclick="showTab('trace')", **{"data-tab-btn": "trace"}),
-            Button("Detail", cls="right-tab", onclick="showTab('detail')", **{"data-tab-btn": "detail"}),
-            cls="right-tabs",
+            Div(
+                Div("◈", cls="artifact-empty-icon"),
+                P("Canvas renders here as agents produce artifacts — deal briefs, risk scores, budget tables, sales estimates.",
+                  cls="artifact-empty-text"),
+                id="artifact-empty",
+                cls="artifact-empty",
+            ),
+            Div(id="artifact-body", cls="artifact-body", style="display:none"),
+            cls="right-body",
         ),
-        Div(
-            Div(id="trace-content", style="display:block", **{"data-tab": "trace"}),
-            Div(id="detail-content", style="display:none", **{"data-tab": "detail"}),
-            cls="right-content",
-        ),
-        cls="right-pane",
+        id="right-pane", cls="right-pane",
     )
 
 
@@ -952,7 +542,7 @@ def login_page(session):
         return RedirectResponse("/", status_code=303)
     return Titled(
         "Monika — Login",
-        Style(APP_CSS),
+        Link(rel="stylesheet", href="/static/app.css"),
         Div(
             H2("Sign In", style="text-align:center; margin-bottom:1.5rem;"),
             Form(
@@ -977,7 +567,7 @@ def login_submit(email: str, password: str, session):
     if not user:
         return Titled(
             "Monika — Login",
-            Style(APP_CSS),
+            Link(rel="stylesheet", href="/static/app.css"),
             Div(
                 H2("Sign In", style="text-align:center; margin-bottom:1.5rem;"),
                 Form(
@@ -1005,7 +595,7 @@ def register_page(session):
         return RedirectResponse("/", status_code=303)
     return Titled(
         "Monika — Register",
-        Style(APP_CSS),
+        Link(rel="stylesheet", href="/static/app.css"),
         Div(
             H2("Create Account", style="text-align:center; margin-bottom:1.5rem;"),
             Form(
@@ -1030,7 +620,7 @@ def register_submit(email: str, password: str, display_name: str, session):
     if not user:
         return Titled(
             "Monika — Register",
-            Style(APP_CSS),
+            Link(rel="stylesheet", href="/static/app.css"),
             Div(
                 H2("Create Account", style="text-align:center; margin-bottom:1.5rem;"),
                 Form(
@@ -1062,61 +652,120 @@ def logout(session):
 # Module Routes (HTMX partials loaded into center pane)
 # ---------------------------------------------------------------------------
 
-@rt("/module/deals")
-def module_deals(session):
+PIPELINE_STAGES = [
+    ("pipeline",  "Pipeline"),
+    ("active",    "Active"),
+    ("approved",  "Approved"),
+    ("funded",    "Funded"),
+    ("closed",    "Closed"),
+    ("declined",  "Declined"),
+]
+
+STAGE_COLORS = {
+    "pipeline":  "#C89B5B",
+    "active":    "#4A8E66",
+    "approved":  "#2F7151",
+    "funded":    "#1F5D43",
+    "closed":    "#6B4E2F",
+    "declined":  "#9C8F7A",
+}
+
+
+def _pipeline_card(deal, sym="$"):
+    title = deal[1]
+    status = deal[2] or "pipeline"
+    amount = deal[3]
+    borrower = deal[4] or "—"
+    genre = deal[5] or ""
+    amt_str = f"{sym}{float(amount)/1_000_000:.1f}M" if amount else "—"
+
+    status_colors = {"pipeline": "#C89B5B", "active": "#4A8E66", "approved": "#2F7151",
+                     "funded": "#1F5D43", "closed": "#6B4E2F", "declined": "#9C8F7A"}
+    heat = status_colors.get(status, "#CFC8B4")
+
+    return Div(
+        Div(
+            Div(
+                Span(cls="heat-dot", style=f"background:{heat}"),
+                Span(title, cls="card-title"),
+                cls="card-head",
+            ),
+            Div(
+                Span(genre.replace("_", " ").title() if genre else borrower,
+                     cls="card-sub"),
+                cls="card-meta",
+            ),
+            Div(
+                Span(f"{amt_str} loan", cls="card-metric") if amount else Span("—", cls="card-metric"),
+                Span("·"),
+                Span(borrower, cls="card-metric"),
+                cls="card-metrics-line",
+            ),
+            cls="pipeline-deal-card",
+        ),
+        hx_get=f"/module/deal/{deal[0]}",
+        hx_target="#center-content",
+        hx_swap="innerHTML",
+        style="cursor:pointer;",
+    )
+
+
+@rt("/module/pipeline")
+def module_pipeline(session, status_filter: str = ""):
     from sqlalchemy import text
     from utils.db import get_pool
     try:
         pool = get_pool()
         with pool.get_session() as s:
-            stats = s.execute(text("""
-                SELECT status, COUNT(*), COALESCE(SUM(loan_amount), 0)
-                FROM ahmf.deals GROUP BY status
+            rows = s.execute(text("""
+                SELECT deal_id, title, status, loan_amount, borrower_name, genre
+                FROM ahmf.deals ORDER BY status, created_at DESC
             """)).fetchall()
-            recent = s.execute(text("""
-                SELECT deal_id, title, status, loan_amount, borrower_name, genre, created_at
-                FROM ahmf.deals ORDER BY created_at DESC LIMIT 10
-            """)).fetchall()
-        stat_map = {r[0]: (r[1], r[2]) for r in stats}
-        total_count = sum(r[1] for r in stats)
-        total_amount = sum(r[2] for r in stats)
     except Exception:
-        stat_map, total_count, total_amount, recent = {}, 0, 0, []
+        rows = []
 
-    deal_cards = []
-    for r in recent:
-        status_cls = f"status-{r[2]}" if r[2] in ("pipeline", "active", "closed", "declined") else "status-pipeline"
-        amt = f"${r[3]:,.0f}" if r[3] else "—"
-        deal_cards.append(Div(
+    by_stage: dict[str, list] = {}
+    for r in rows:
+        stage = r[2] or "pipeline"
+        by_stage.setdefault(stage, []).append(r)
+
+    columns = []
+    for stage_key, stage_label in PIPELINE_STAGES:
+        cards = by_stage.get(stage_key, [])
+        columns.append(Div(
             Div(
-                Span(r[1], cls="deal-card-title"),
-                Span(r[2].title(), cls=f"status-pill {status_cls}"),
-                style="display:flex;justify-content:space-between;align-items:center;",
+                Span(stage_label, cls="col-title"),
+                Span(str(len(cards)), cls="col-count"),
+                cls="col-head",
+                style=f"border-bottom-color:{STAGE_COLORS.get(stage_key, '#CFC8B4')}",
             ),
-            Div(f"{r[4] or '—'} | {r[5] or '—'} | {amt}", cls="deal-card-meta"),
-            cls="deal-card",
-            hx_get=f"/module/deal/{r[0]}",
-            hx_target="#center-content",
-            hx_swap="innerHTML",
+            Div(*[_pipeline_card(c) for c in cards], cls="col-body"),
+            cls="kanban-col",
         ))
 
-    return Div(
-        H1("Deal Pipeline"),
-        Div(
-            Div(Div("Total Deals", cls="stat-label"), Div(str(total_count), cls="stat-value"), cls="stat-card"),
-            Div(Div("Total Committed", cls="stat-label"), Div(f"${total_amount:,.0f}", cls="stat-value"), cls="stat-card"),
-            Div(Div("Pipeline", cls="stat-label"), Div(str(stat_map.get("pipeline", (0,))[0]), cls="stat-value"), cls="stat-card"),
-            Div(Div("Active", cls="stat-label"), Div(str(stat_map.get("active", (0,))[0]), cls="stat-value"), cls="stat-card"),
-            cls="stats-grid",
-        ),
-        H2("Recent Deals"),
-        Div(*deal_cards) if deal_cards else Div(
-            P("No deals yet. Use the chat to create your first deal, or click the button below."),
-            Button("+ New Deal", cls="auth-btn", hx_get="/module/deal/new", hx_target="#center-content", hx_swap="innerHTML"),
-            style="text-align:center;padding:2rem;",
-        ),
-        cls="module-content",
+    filters = Div(
+        Button("All", cls=f"filter-chip{' active' if not status_filter else ''}",
+               hx_get="/module/pipeline", hx_target="#center-content", hx_swap="innerHTML"),
+        *[Button(label, cls=f"filter-chip{' active' if status_filter == key else ''}",
+                 hx_get=f"/module/pipeline?status_filter={key}", hx_target="#center-content", hx_swap="innerHTML")
+          for key, label in PIPELINE_STAGES],
+        cls="pipeline-filters",
     )
+
+    return Div(
+        filters,
+        Div(*columns, cls="kanban-board"),
+        Div(
+            Button("+ New Deal", cls="auth-btn", hx_get="/module/deal/new", hx_target="#center-content", hx_swap="innerHTML"),
+            style="padding:0.75rem 1.1rem;",
+        ),
+        cls="pipeline-center",
+    )
+
+
+@rt("/module/deals")
+def module_deals(session):
+    return module_pipeline(session)
 
 
 @rt("/module/deal/new")
@@ -1363,23 +1012,39 @@ def index(session, new: str = "", thread: str = ""):
 
     return (
         Title("Monika — Ashland Hill Media Finance"),
-        Style(APP_CSS),
+        Link(rel="stylesheet", href="/static/app.css"),
         Div(
+            Div(id="left-overlay", cls="left-overlay", onclick="toggleLeftPane()"),
             _left_pane(user),
             Div(
                 Div(
-                    H2("AI Chat", id="center-title"),
-                    Button("Inspector", cls="header-btn", onclick="toggleRightPane()"),
-                    cls="center-header",
+                    Div(
+                        Button("☰", cls="mobile-menu-btn", onclick="toggleLeftPane()"),
+                        Span("Monika", cls="chat-header-title", id="center-title"),
+                        Span("·", cls="chat-header-dot"),
+                        Span("AI Chat", cls="chat-header-agent"),
+                        cls="chat-header-left",
+                    ),
+                    Div(
+                        Button("Copy chat", id="copy-chat-btn", cls="chat-action-btn",
+                               onclick="copyChat()"),
+                        Button("Share", id="share-chat-btn", cls="chat-action-btn",
+                               onclick="shareChat()"),
+                        Button("Canvas", id="artifact-btn", cls="artifact-toggle-btn",
+                               onclick="toggleArtifactPane()"),
+                        cls="chat-header-actions",
+                    ),
+                    cls="chat-header",
                 ),
                 Div(id="center-content", cls="module-content", style="display:none;overflow-y:auto;flex:1;"),
                 Div(agui.chat(thread_id), cls="center-chat", id="center-chat"),
+                _sample_cards(),
                 cls="center-pane",
             ),
             _right_pane(),
-            cls="app-layout",
+            cls="app-layout pane-closed",
         ),
-        Script(LAYOUT_JS),
+        Script(src="/static/chat.js"),
     )
 
 
