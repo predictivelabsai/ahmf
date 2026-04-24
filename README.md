@@ -14,6 +14,11 @@
 - **Accounting** — Transaction ledger, multi-currency, net position tracking
 - **Communications** — Deal-linked messages and tasks with deadline tracking
 
+**AI Copilot** — Context-aware right-pane assistant on every dashboard page:
+- Text-to-SQL queries against the live database
+- Module-specific shortcut buttons (e.g. "Total loan exposure", "Overdue collections")
+- Automatic context switching between Documents mode (AI Chat) and Copilot mode (dashboards)
+
 **AI Tools** — 7 intelligent modules powered by XAI Grok:
 - **Sales Estimates Generator** — Revenue projections benchmarked against TMDB/OMDB comps
 - **Production Risk Scoring** — 6-dimension risk analysis with mitigation recommendations
@@ -109,17 +114,46 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 ## Testing
 
 ```bash
-# Run test suite (30 tests)
+# Unit + integration tests (30 tests)
 python tests/test_suite.py
 
-# Regenerate user guide screenshots
+# Full regression suite — 76 Python + Playwright tests, screenshots to screenshots/
+python tests/regression_suite.py --start-app
+```
+
+## Screenshots, Video & Docs
+
+All capture scripts assume the app is running on `localhost:5010`. Add `--start-app` where supported to auto-launch it.
+
+```bash
+# Regenerate user guide screenshots (17 images → static/guide/)
 python tests/capture_guide.py --start-app
 
-# Regenerate demo video
+# Regenerate demo video + GIF (full Playwright walkthrough → docs/frames/, docs/demo_video.*)
 python tests/capture_video.py
 
-# Regenerate management slide deck (20 slides)
+# Build video/GIF from existing frames only (no Playwright, no browser needed)
+python tests/capture_video.py --video-only
+
+# Capture frames only, skip video/GIF generation
+python tests/capture_video.py --capture-only
+
+# Regenerate management slide deck (uses screenshots from static/guide/)
 python docs/generate_pptx.py
+```
+
+| Script | Output | Description |
+|--------|--------|-------------|
+| `tests/capture_guide.py` | `static/guide/*.png` | In-app User Guide screenshots |
+| `tests/capture_video.py` | `docs/demo_video.gif`, `docs/demo_video.mp4`, `docs/frames/` | Product demo walkthrough (32 frames, ~48s) |
+| `docs/generate_pptx.py` | `docs/AHMF_Platform_Overview.pptx` | Management slide deck |
+
+### Changelog
+
+```bash
+python change_log.py                  # patch bump
+python change_log.py --bump minor     # minor bump
+python change_log.py --tag            # also create git tag
 ```
 
 ## Architecture

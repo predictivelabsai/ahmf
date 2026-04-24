@@ -39,15 +39,19 @@ async def capture(page, label, pause=1.0):
 
 
 async def nav_module(page, path, title, pause=0.8):
-    """Navigate to a module via JS (avoids event.currentTarget issues)."""
+    """Navigate to a module via loadModule (updates center pane + right pane copilot)."""
     await page.evaluate(f"""
         () => {{
-            var c=document.getElementById('center-content');
-            var ch=document.getElementById('center-chat');
-            if(c&&ch){{ch.style.display='none';c.style.display='block';}}
-            htmx.ajax('GET', '{path}', {{target:'#center-content', swap:'innerHTML'}});
-            var h=document.getElementById('center-title');
-            if(h) h.textContent='{title}';
+            if (typeof loadModule === 'function') {{
+                loadModule('{path}', '{title}');
+            }} else {{
+                var c=document.getElementById('center-content');
+                var ch=document.getElementById('center-chat');
+                if(c&&ch){{ch.style.display='none';c.style.display='block';}}
+                htmx.ajax('GET', '{path}', {{target:'#center-content', swap:'innerHTML'}});
+                var h=document.getElementById('center-title');
+                if(h) h.textContent='{title}';
+            }}
         }}
     """)
     await asyncio.sleep(pause)
@@ -57,12 +61,16 @@ async def show_chat(page):
     """Switch back to chat view."""
     await page.evaluate("""
         () => {
-            var c=document.getElementById('center-content');
-            var ch=document.getElementById('center-chat');
-            if(c) c.style.display='none';
-            if(ch) ch.style.display='block';
-            var h=document.getElementById('center-title');
-            if(h) h.textContent='AI Chat';
+            if (typeof showChat === 'function') {
+                showChat();
+            } else {
+                var c=document.getElementById('center-content');
+                var ch=document.getElementById('center-chat');
+                if(c) c.style.display='none';
+                if(ch) ch.style.display='block';
+                var h=document.getElementById('center-title');
+                if(h) h.textContent='AI Chat';
+            }
         }
     """)
 
@@ -136,13 +144,48 @@ async def run():
         await nav_module(page, "/module/deals", "Deals")
         await capture(page, "module_deals", 1.5)
 
-        # ===== MODULE: New Deal Form =====
-        await nav_module(page, "/module/deal/new", "New Deal")
-        await capture(page, "module_deal_new", 1.0)
+        # ===== MODULE: Deal Detail =====
+        deal_link = await page.evaluate("""
+            () => {
+                var links = document.querySelectorAll('[onclick*="deal/"]');
+                for (var l of links) {
+                    var m = l.getAttribute('onclick').match(/loadModule\\('([^']+)','([^']+)'\\)/);
+                    if (m && !m[1].includes('/new')) return {path: m[1], title: m[2]};
+                }
+                return null;
+            }
+        """)
+        if deal_link:
+            await nav_module(page, deal_link["path"], deal_link["title"])
+            await capture(page, "module_deal_detail", 1.5)
 
         # ===== MODULE: Contacts =====
         await nav_module(page, "/module/contacts", "Contacts")
         await capture(page, "module_contacts", 1.0)
+
+        # ===== MODULE: Contact Detail =====
+        contact_link = await page.evaluate("""
+            () => {
+                var links = document.querySelectorAll('[onclick*="contact/"]');
+                for (var l of links) {
+                    var m = l.getAttribute('onclick').match(/loadModule\\('([^']+)','([^']+)'\\)/);
+                    if (m) return {path: m[1], title: m[2]};
+                }
+                return null;
+            }
+        """)
+        if contact_link:
+            await nav_module(page, contact_link["path"], contact_link["title"])
+            await capture(page, "module_contact_detail", 1.0)
+            # Switch to Analytics tab
+            await page.evaluate("""
+                () => {
+                    var tabs = document.querySelectorAll('.contact-tab');
+                    for (var t of tabs) { if (t.textContent.trim() === 'Analytics') t.click(); }
+                }
+            """)
+            await asyncio.sleep(1)
+            await capture(page, "module_contact_analytics", 1.0)
 
         # ===== MODULE: Sales & Collections =====
         await nav_module(page, "/module/sales", "Sales & Collections")
@@ -293,22 +336,29 @@ def build_video():
 
 
 def main():
-    print(f"\n{'='*60}")
-    print(f"  AHMF Product Demo — Video Capture")
-    print(f"{'='*60}\n")
+    import argparse
+    parser = argparse.ArgumentParser(description="AHMF Product Demo — Video Capture")
+    parser.add_argument("--video-only", action="store_true",
+                        help="Skip Playwright capture, build video/GIF from existing frames")
+    parser.add_argument("--capture-only", action="store_true",
+                        help="Capture frames only, skip video/GIF generation")
+    args = parser.parse_args()
 
-    asyncio.run(run())
+    if not args.video_only:
+        print(f"\n{'='*60}")
+        print(f"  AHMF Product Demo — Capturing frames")
+        print(f"{'='*60}\n")
+        asyncio.run(run())
 
-    print(f"\n{'='*60}")
-    print(f"  Building video and GIF...")
-    print(f"{'='*60}\n")
-
-    build_video()
-
-    print(f"\n  Done!")
-    print(f"  MP4: docs/demo_video.mp4")
-    print(f"  GIF: docs/demo_video.gif")
-    print(f"  Frames: docs/frames/\n")
+    if not args.capture_only:
+        print(f"\n{'='*60}")
+        print(f"  Building video and GIF...")
+        print(f"{'='*60}\n")
+        build_video()
+        print(f"\n  Done!")
+        print(f"  MP4: docs/demo_video.mp4")
+        print(f"  GIF: docs/demo_video.gif")
+        print(f"  Frames: docs/frames/\n")
 
 
 if __name__ == "__main__":
