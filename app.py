@@ -365,170 +365,89 @@ LAYOUT_JS = ""  # JS now in static/chat.js
 # Sidebar icons (SVG)
 # ---------------------------------------------------------------------------
 
-from agents.registry import AGENTS, AGENTS_BY_SLUG, AGENTS_BY_CATEGORY, CATEGORIES
-
-
 # ---------------------------------------------------------------------------
 # Layout Components
 # ---------------------------------------------------------------------------
 
-def _agent_browser():
-    """Left-pane browser of all agents, grouped by category."""
-    groups = []
-    for cat in CATEGORIES:
-        agents = AGENTS_BY_CATEGORY.get(cat["key"], [])
-        buttons = [
-            Button(
-                Span(a.icon, cls="aitem-icon"),
-                Span(a.name, cls="aitem-name"),
-                Span(a.prefix, cls="aitem-prefix"),
-                cls="agent-item",
-                onclick=f"fillChat({a.prefix + ' '!r})",
-                title=a.one_liner,
-            )
-            for a in agents
-        ]
-        groups.append(Div(
-            Button(
-                Span(cat["icon"], cls="cat-icon"),
-                Span(cat["name"], cls="cat-name"),
-                Span(f"{len(agents)}", cls="cat-count"),
-                Span("▸", cls="cat-arrow"),
-                cls="cat-toggle",
-                onclick=f"toggleGroup('cat-{cat['key']}')",
-                id=f"btn-cat-{cat['key']}",
-            ),
-            Div(*buttons, cls="agent-list", id=f"cat-{cat['key']}"),
-            cls="agent-group",
-        ))
-    return Div(*groups, cls="agent-browser")
+def _left_pane(user=None):
+    display = user.get("display_name", "User") if user else None
+    user_email = user.get("email", "") if user else None
+    initials = (display[0].upper() if display else "U")
 
-
-def _bottom_nav():
-    items = [
-        ("Pipeline", "/module/pipeline", "◆"),
-        ("User Guide", "#", "✎"),
+    nav = [
+        ("home",       "Home",                     "/module/home",       "⌂"),
+        ("deals",      "Deals",                    "/module/deals",      "◇"),
+        ("sales",      "Sales & Collections",      "/module/sales",      "□"),
+        ("accounting", "Accounting & Transactions", "/module/accounting", "◈"),
+        ("contacts",   "Contacts",                 "/module/contacts",   "◎"),
+        ("tasks",      "Tasks",                    "/module/comms",      "☑"),
+        ("reporting",  "Reporting",                "/module/reporting",  "▥"),
     ]
-    links = []
-    for label, href, icon in items:
-        onclick = f"loadModule('{href}', '{label}')" if not href.startswith("http") and href != "#" else ""
-        if label == "User Guide":
-            onclick = "loadModule('/module/guide', 'User Guide')"
-        links.append(A(
-            Span(icon, cls="bottom-nav-icon"),
-            Span(label, cls="bottom-nav-label"),
+    nav_links = [
+        A(
+            Span(icon, cls="nav-icon"),
+            Span(label, cls="nav-label"),
             href="#",
-            onclick=onclick,
-            cls="bottom-nav-link",
-        ))
-    return Div(*links, cls="bottom-nav")
-
-
-def _sample_cards():
-    """Gemini-style sample-question cards below the chat input."""
-    prompts = [
-        "deal:list",
-        "estimate: revenue for a $15M horror film with Florence Pugh",
-        "risk: analyze a $20M action film shooting in Georgia",
-        "budget: generate for a $15M drama, 35 days in NYC",
-        "talent:search Florence Pugh",
-        "incentives",
-    ]
-    chips = [
-        Button(
-            Span(p, cls="sample-card-text"),
-            cls="sample-card",
-            onclick=f"fillAndSend({p!r})",
-            title=p,
+            onclick=f"loadModule('{path}', '{label}')",
+            cls=f"nav-item{'active' if item_id == 'home' else ''}",
+            id=f"nav-{item_id}",
         )
-        for p in prompts
+        for item_id, label, path, icon in nav
     ]
-    return Div(
-        Div(
-            Span("Try a prompt", cls="sample-cards-label"),
-            id="sample-cards-label",
-        ),
-        Div(*chips, id="sample-cards-row", cls="sample-cards-row"),
-        id="sample-cards",
-        cls="sample-cards",
+
+    ai_link = A(
+        Span("◐", cls="nav-icon"),
+        Span("AI Assistant", cls="nav-label"),
+        href="#",
+        onclick="showChat()",
+        cls="nav-item",
+        id="nav-chat",
     )
 
-
-def _left_pane(user=None):
-    user_email = user.get("email", "") if user else None
-    display = user.get("display_name", "User") if user else None
-
-    signin_block = (
+    user_block = (
         Div(
-            Span("◇", style="color:var(--accent);"),
-            Span(user_email or display, style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;font-size:.72rem;"),
-            Button("Sign out", style="font-size:.62rem;padding:.15rem .4rem;background:transparent;border:1px solid var(--line-br);border-radius:.3rem;color:var(--ink-dim);cursor:pointer;",
-                   onclick="window.location.href='/logout'"),
-            style="display:flex;align-items:center;gap:.4rem;",
+            Div(
+                Div(initials, cls="user-avatar"),
+                Div(
+                    Div(display or "User", cls="user-name"),
+                    Div(user_email or "", cls="user-email-text"),
+                ),
+                cls="user-profile",
+            ),
+            Div(
+                A("Settings", href="#", onclick="loadModule('/module/guide','User Guide')", cls="footer-link"),
+                A("Help Center", href="#", onclick="loadModule('/module/guide','User Guide')", cls="footer-link"),
+                cls="footer-links",
+            ),
+            A("Sign out", href="/logout", cls="footer-link signout"),
         )
         if user else
-        Button("Sign in", onclick="window.location.href='/login'",
-               style="width:100%;padding:.4rem;background:transparent;border:1px solid var(--line-br);border-radius:.45rem;color:var(--ink-muted);cursor:pointer;font-size:.72rem;")
+        Button("Sign in", onclick="window.location.href='/login'", cls="auth-btn", style="width:100%;")
     )
 
     return Div(
         Div(
-            A(Span("◐", cls="brand-mark"), Span("Monika"),
-              href="/", cls="brand-link"),
-            Span("Beta", cls="brand-badge"),
-            cls="left-header",
+            A(Span("▲■", cls="logo-mark"), href="/", cls="logo-link"),
+            cls="sidebar-logo",
         ),
         Div(
-            # Sessions section
-            Div(
-                Button("+ New chat", cls="new-chat-btn", onclick="window.location.href='/?new=1'"),
-                Div(Span("Sessions", cls="section-label")),
-                Div(id="conv-list", hx_get="/agui-conv/list", hx_trigger="load", hx_swap="innerHTML"),
-                cls="sessions-section",
-            ),
-            Hr(cls="left-hr"),
-            # Agents section
-            Div(
-                Div(Span("Agents", cls="section-label")),
-                _agent_browser(),
-                cls="agents-section",
-            ),
-            Hr(cls="left-hr"),
-            # Workspace section
-            Div(
-                Div(Span("Workspace", cls="section-label")),
-                _bottom_nav(),
-                cls="workspace-section",
-            ),
-            cls="left-body",
+            *nav_links,
+            ai_link,
+            cls="sidebar-nav",
         ),
-        Div(signin_block, cls="left-footer"),
+        Div(
+            Div("FAVORITE DEALS", cls="sidebar-section-title"),
+            Div(id="favorite-deals", hx_get="/api/favorite-deals", hx_trigger="load", hx_swap="innerHTML"),
+            cls="sidebar-section",
+        ),
+        Div(
+            Div("FOLDERS", cls="sidebar-section-title"),
+            A("📁 LSA", href="#", cls="folder-link"),
+            A("📁 Budget Sheets", href="#", cls="folder-link"),
+            cls="sidebar-section",
+        ),
+        Div(user_block, cls="sidebar-footer"),
         cls="left-pane",
-    )
-
-
-def _right_pane():
-    """Canvas pane — starts empty; filled by agent artifacts."""
-    return Div(
-        Div(
-            Div(H3("Canvas", cls="right-title"),
-                Span("", id="artifact-subtitle", cls="right-subtitle"),
-                cls="right-header-left"),
-            Button("✕", cls="right-close", onclick="toggleArtifactPane()"),
-            cls="right-header",
-        ),
-        Div(
-            Div(
-                Div("◈", cls="artifact-empty-icon"),
-                P("Canvas renders here as agents produce artifacts — deal briefs, risk scores, budget tables, sales estimates.",
-                  cls="artifact-empty-text"),
-                id="artifact-empty",
-                cls="artifact-empty",
-            ),
-            Div(id="artifact-body", cls="artifact-body", style="display:none"),
-            cls="right-body",
-        ),
-        id="right-pane", cls="right-pane",
     )
 
 
@@ -652,66 +571,368 @@ def logout(session):
 # Module Routes (HTMX partials loaded into center pane)
 # ---------------------------------------------------------------------------
 
-PIPELINE_STAGES = [
-    ("pipeline",  "Pipeline"),
-    ("active",    "Active"),
-    ("approved",  "Approved"),
-    ("funded",    "Funded"),
-    ("closed",    "Closed"),
-    ("declined",  "Declined"),
-]
+STATUS_COLORS = {
+    "pipeline": "#D6AE6E", "active": "#4A8E66", "approved": "#2F7151",
+    "funded": "#1F5D43", "closed": "#6B4E2F", "declined": "#9C8F7A",
+    "pre-production": "#3B82F6", "production": "#22C55E",
+}
 
-STAGE_COLORS = {
-    "pipeline":  "#C89B5B",
-    "active":    "#4A8E66",
-    "approved":  "#2F7151",
-    "funded":    "#1F5D43",
-    "closed":    "#6B4E2F",
-    "declined":  "#9C8F7A",
+GENRE_GRADIENTS = {
+    "drama":    "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
+    "action":   "linear-gradient(135deg, #2d1b00 0%, #8B4513 50%, #D2691E 100%)",
+    "horror":   "linear-gradient(135deg, #1a0000 0%, #3d0000 50%, #5c0000 100%)",
+    "comedy":   "linear-gradient(135deg, #1a2a1a 0%, #2d5a2d 50%, #3d7a3d 100%)",
+    "sci-fi":   "linear-gradient(135deg, #0a0a2e 0%, #1a1a4e 50%, #2a2a6e 100%)",
+    "thriller": "linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 50%, #3a3a3a 100%)",
+    "default":  "linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)",
 }
 
 
-def _pipeline_card(deal, sym="$"):
+def _deal_poster_card(deal):
     title = deal[1]
     status = deal[2] or "pipeline"
     amount = deal[3]
     borrower = deal[4] or "—"
-    genre = deal[5] or ""
-    amt_str = f"{sym}{float(amount)/1_000_000:.1f}M" if amount else "—"
+    genre = (deal[5] or "").lower()
+    amt_str = f"${float(amount):,.0f}" if amount else "—"
+    gradient = GENRE_GRADIENTS.get(genre, GENRE_GRADIENTS["default"])
+    status_color = STATUS_COLORS.get(status, "#CFC8B4")
+    status_label = status.replace("_", " ").title()
 
-    status_colors = {"pipeline": "#C89B5B", "active": "#4A8E66", "approved": "#2F7151",
-                     "funded": "#1F5D43", "closed": "#6B4E2F", "declined": "#9C8F7A"}
-    heat = status_colors.get(status, "#CFC8B4")
+    return Div(
+        Div(
+            Span(status_label, cls="poster-status", style=f"background:{status_color}"),
+            Div(title[0] if title else "?", cls="poster-initial"),
+            cls="poster-image",
+            style=f"background:{gradient}",
+        ),
+        Div(
+            Div(
+                Span(title, cls="poster-title"),
+                cls="poster-title-row",
+            ),
+            Div(borrower, cls="poster-prodco"),
+            Div(f"Net Loan: {amt_str}", cls="poster-loan"),
+            cls="poster-info",
+        ),
+        cls="deal-poster-card",
+        hx_get=f"/module/deal/{deal[0]}",
+        hx_target="#center-content",
+        hx_swap="innerHTML",
+    )
+
+
+@rt("/api/favorite-deals")
+def api_favorite_deals(session):
+    from sqlalchemy import text
+    from utils.db import get_pool
+    try:
+        pool = get_pool()
+        with pool.get_session() as s:
+            rows = s.execute(text("""
+                SELECT deal_id, title FROM ahmf.deals
+                WHERE status IN ('active','funded','pipeline')
+                ORDER BY created_at DESC LIMIT 5
+            """)).fetchall()
+    except Exception:
+        rows = []
+    if not rows:
+        return Span("No deals yet", style="font-size:.72rem;color:var(--ink-dim);padding:.4rem;")
+    links = [
+        A(f"⭐ {r[1]}", href="#",
+          onclick=f"loadModule('/module/deal/{r[0]}','Deal: {r[1]}')",
+          cls="favorite-deal-link")
+        for r in rows
+    ]
+    return Div(*links)
+
+
+@rt("/module/home")
+def module_home(session):
+    from sqlalchemy import text
+    from utils.db import get_pool
+    display = session.get("display_name", "User")
+    import datetime
+    hour = datetime.datetime.now().hour
+    greeting = "Good morning" if hour < 12 else ("Good afternoon" if hour < 17 else "Good evening")
+
+    deals_count = 0
+    total_loan = 0
+    avg_rate = 0
+    tasks_due = 0
+    tasks_overdue = 0
+    deals = []
+    messages = []
+    status_breakdown = []
+
+    try:
+        pool = get_pool()
+        with pool.get_session() as s:
+            stats = s.execute(text("""
+                SELECT COUNT(*), COALESCE(SUM(loan_amount),0), COALESCE(AVG(interest_rate),0)
+                FROM ahmf.deals
+            """)).fetchone()
+            deals_count = stats[0]
+            total_loan = float(stats[1])
+            avg_rate = float(stats[2])
+
+            tasks_row = s.execute(text("""
+                SELECT
+                    COUNT(*) FILTER (WHERE due_date >= CURRENT_DATE AND status='open'),
+                    COUNT(*) FILTER (WHERE due_date < CURRENT_DATE AND status='open')
+                FROM ahmf.messages WHERE message_type='task'
+            """)).fetchone()
+            tasks_due = tasks_row[0] if tasks_row else 0
+            tasks_overdue = tasks_row[1] if tasks_row else 0
+
+            deals = s.execute(text("""
+                SELECT deal_id, title, status, loan_amount, borrower_name, genre
+                FROM ahmf.deals ORDER BY created_at DESC LIMIT 10
+            """)).fetchall()
+
+            messages = s.execute(text("""
+                SELECT subject, due_date, status, body
+                FROM ahmf.messages
+                WHERE message_type='task' AND status='open'
+                ORDER BY due_date ASC NULLS LAST LIMIT 5
+            """)).fetchall()
+
+            status_breakdown = s.execute(text("""
+                SELECT status, COUNT(*), COALESCE(SUM(loan_amount),0)
+                FROM ahmf.deals GROUP BY status ORDER BY status
+            """)).fetchall()
+
+    except Exception as e:
+        logger.warning(f"Dashboard query error: {e}")
+
+    ep_fees = total_loan * 0.03
+    profit_splits = total_loan * 0.015
+
+    kpi_cards = Div(
+        Div(Div("Internal Rate of Return", cls="kpi-label"), Div(f"{avg_rate:.0f}%", cls="kpi-value"), Div("all time", cls="kpi-sub"), cls="kpi-card"),
+        Div(Div("Gross Yield", cls="kpi-label"), Div(f"{avg_rate * 1.3:.0f}%", cls="kpi-value"), Div("all time, annualized", cls="kpi-sub"), cls="kpi-card"),
+        Div(Div("Executive Producer Fees", cls="kpi-label"), Div(f"${ep_fees:,.0f}", cls="kpi-value"), Div("since start of the year", cls="kpi-sub"), cls="kpi-card"),
+        Div(Div("Profit Splits", cls="kpi-label"), Div(f"${profit_splits:,.0f}", cls="kpi-value"), Div("since start of the year", cls="kpi-sub"), cls="kpi-card"),
+        cls="kpi-grid",
+    )
+
+    todo_items = []
+    for m in messages:
+        priority = "Medium priority"
+        if m[1] and str(m[1]) < str(datetime.date.today()):
+            priority = "ASAP"
+        elif m[1] and str(m[1]) == str(datetime.date.today()):
+            priority = "High priority"
+        due_str = f"Due {m[1]}" if m[1] else "No due date"
+        todo_items.append(
+            Div(
+                Span("○", cls="todo-check"),
+                Div(
+                    Span(m[0] or "Task", cls="todo-text"),
+                    Div(
+                        Span(due_str, cls="todo-due"),
+                        Span(priority, cls=f"todo-priority {'todo-asap' if priority == 'ASAP' else 'todo-high' if priority == 'High priority' else ''}"),
+                        cls="todo-meta",
+                    ),
+                    cls="todo-content",
+                ),
+                cls="todo-item",
+            )
+        )
+    if not todo_items:
+        todo_items = [Div("No open tasks", cls="empty-state")]
+
+    agenda = Div(
+        Div(Span("📅", cls="section-icon"), Span("Agenda", cls="section-title-text"), cls="section-header"),
+        Div(
+            Div(Span("9AM", cls="agenda-time"), Div(cls="agenda-block empty"), cls="agenda-slot"),
+            Div(Span("10AM", cls="agenda-time"), Div("Weekly Sync", cls="agenda-block meeting"), cls="agenda-slot"),
+            Div(Span("11AM", cls="agenda-time"), Div("Deep focus time", cls="agenda-block focus"), cls="agenda-slot"),
+            Div(Span("12PM", cls="agenda-time"), Div("Lunch", cls="agenda-block lunch"), cls="agenda-slot"),
+            Div(Span("1PM", cls="agenda-time"), Div(cls="agenda-block empty"), cls="agenda-slot"),
+            cls="agenda-widget",
+        ),
+        cls="dashboard-card",
+    )
+
+    todo_section = Div(
+        Div(
+            Div(
+                Div(Span("☑", cls="section-icon"), Span("To-Do", cls="section-title-text"), cls="section-header"),
+                *todo_items,
+                cls="dashboard-card todo-card",
+            ),
+            agenda,
+            cls="todo-agenda-row",
+        ),
+    )
+
+    deal_cards = [_deal_poster_card(d) for d in deals]
+    if not deal_cards:
+        deal_cards = [Div("No deals yet. Create your first deal.", cls="empty-state")]
+
+    deals_section = Div(
+        Div(Span("⭐", cls="section-icon"), Span("Deals", cls="section-title-text"), cls="section-header"),
+        Div(*deal_cards, cls="deals-scroll"),
+        cls="dashboard-card",
+    )
+
+    chart_data = {s[0]: float(s[2]) for s in status_breakdown} if status_breakdown else {}
+    analytics_section = Div(
+        Div(Span("◎", cls="section-icon"), Span("Analytics & Reporting", cls="section-title-text"), cls="section-header"),
+        Div(
+            Div(
+                Div("Repayments", cls="chart-title"),
+                Div(f"${total_loan * 0.85:,.2f}", cls="chart-value"),
+                Div(id="chart-repayments", style="height:120px;"),
+                cls="chart-card",
+            ),
+            Div(
+                Div("Sales & Collections", cls="chart-title"),
+                Div(f"${total_loan * 0.45:,.2f}", cls="chart-value"),
+                Div(id="chart-sales", style="height:120px;"),
+                cls="chart-card",
+            ),
+            cls="charts-row",
+        ),
+        Div(
+            Div(
+                Div("Profit Splits", cls="chart-title"),
+                Div(f"${profit_splits:,.0f}", cls="chart-value"),
+                Div(id="chart-profits", style="height:120px;"),
+                cls="chart-card",
+            ),
+            Div(
+                Div("EP Fees Flow", cls="chart-title"),
+                Div(f"${ep_fees:,.2f}", cls="chart-value"),
+                Div(id="chart-fees", style="height:120px;"),
+                cls="chart-card",
+            ),
+            Div(
+                Div("Post-Maturity Interest", cls="chart-title"),
+                Div(f"${total_loan * 0.02:,.2f}", cls="chart-value"),
+                Div(id="chart-interest", style="height:120px;"),
+                cls="chart-card",
+            ),
+            cls="charts-row charts-row-3",
+        ),
+        cls="dashboard-card",
+    )
+
+    chart_js = Script(f"""
+    (function() {{
+        var months = ['Jan','Feb','Mar','Apr','May'];
+        var layout = {{margin:{{t:5,r:10,b:25,l:40}},paper_bgcolor:'transparent',plot_bgcolor:'transparent',font:{{size:10,color:'#7A7A7A'}},xaxis:{{showgrid:false}},yaxis:{{showgrid:true,gridcolor:'#E8E4DC'}}}};
+        var config = {{displayModeBar:false,responsive:true}};
+        var repay = [{{x:months,y:[{total_loan*0.1:.0f},{total_loan*0.15:.0f},{total_loan*0.2:.0f},{total_loan*0.22:.0f},{total_loan*0.18:.0f}],type:'scatter',fill:'tozeroy',line:{{color:'#3B82F6'}},fillcolor:'rgba(59,130,246,0.15)'}}];
+        var sales = [{{x:months,y:[{total_loan*0.08:.0f},{total_loan*0.12:.0f},{total_loan*0.09:.0f},{total_loan*0.11:.0f},{total_loan*0.05:.0f}],type:'bar',marker:{{color:'#3B82F6'}},name:'Deliveries'}},
+                     {{x:months,y:[{total_loan*0.06:.0f},{total_loan*0.09:.0f},{total_loan*0.07:.0f},{total_loan*0.08:.0f},{total_loan*0.04:.0f}],type:'bar',marker:{{color:'#93C5FD'}},name:'Sales'}}];
+        var profits = [{{x:months,y:[{profit_splits*0.15:.0f},{profit_splits*0.2:.0f},{profit_splits*0.25:.0f},{profit_splits*0.22:.0f},{profit_splits*0.18:.0f}],type:'bar',marker:{{color:'#3B82F6'}}}}];
+        var fees = [{{x:months,y:[{ep_fees*0.1:.0f},{ep_fees*0.15:.0f},{ep_fees*0.22:.0f},{ep_fees*0.28:.0f},{ep_fees*0.25:.0f}],type:'bar',marker:{{color:'#EF4444'}}}}];
+        var interest = [{{x:months,y:[{total_loan*0.003:.0f},{total_loan*0.004:.0f},{total_loan*0.005:.0f},{total_loan*0.004:.0f},{total_loan*0.004:.0f}],type:'scatter',fill:'tozeroy',line:{{color:'#3B82F6'}},fillcolor:'rgba(59,130,246,0.15)'}}];
+        if(document.getElementById('chart-repayments')) Plotly.newPlot('chart-repayments',repay,layout,config);
+        if(document.getElementById('chart-sales')) Plotly.newPlot('chart-sales',sales,{{...layout,barmode:'group'}},config);
+        if(document.getElementById('chart-profits')) Plotly.newPlot('chart-profits',profits,layout,config);
+        if(document.getElementById('chart-fees')) Plotly.newPlot('chart-fees',fees,layout,config);
+        if(document.getElementById('chart-interest')) Plotly.newPlot('chart-interest',interest,layout,config);
+    }})();
+    """)
 
     return Div(
         Div(
             Div(
-                Span(cls="heat-dot", style=f"background:{heat}"),
-                Span(title, cls="card-title"),
-                cls="card-head",
+                H1(f"{greeting}, {display}", cls="dash-greeting"),
+                P(f"Today you have {tasks_due} due tasks and {tasks_overdue} overdue", cls="dash-subtitle"),
+                cls="dash-greeting-block",
             ),
             Div(
-                Span(genre.replace("_", " ").title() if genre else borrower,
-                     cls="card-sub"),
-                cls="card-meta",
+                Button("New Deal +", cls="new-deal-btn",
+                       hx_get="/module/deal/new", hx_target="#center-content", hx_swap="innerHTML"),
+                cls="dash-actions",
             ),
-            Div(
-                Span(f"{amt_str} loan", cls="card-metric") if amount else Span("—", cls="card-metric"),
-                Span("·"),
-                Span(borrower, cls="card-metric"),
-                cls="card-metrics-line",
-            ),
-            cls="pipeline-deal-card",
+            cls="dash-header",
         ),
-        hx_get=f"/module/deal/{deal[0]}",
-        hx_target="#center-content",
-        hx_swap="innerHTML",
-        style="cursor:pointer;",
+        kpi_cards,
+        todo_section,
+        deals_section,
+        analytics_section,
+        chart_js,
+        cls="module-content dashboard-content",
     )
 
 
-@rt("/module/pipeline")
-def module_pipeline(session, status_filter: str = ""):
+@rt("/module/reporting")
+def module_reporting(session):
+    return Div(
+        H1("Reporting"),
+        H2("New Report", style="margin-top:.5rem;"),
+        Div(
+            Div(
+                Div("📊", cls="report-template-icon"),
+                H3("Existing Templates"),
+                cls="report-template-card",
+            ),
+            Div(
+                Div("📄", cls="report-template-icon"),
+                H3("Custom Template"),
+                cls="report-template-card",
+            ),
+            cls="report-templates",
+        ),
+        H2("Favorites", style="margin-top:2rem;"),
+        Div(
+            Div(
+                Div("Sales & Collected", cls="chart-title"),
+                Div(id="chart-rpt-sales", style="height:140px;"),
+                cls="chart-card",
+            ),
+            Div(
+                Div("Sold vs Unsold", cls="chart-title"),
+                Div(id="chart-rpt-unsold", style="height:140px;"),
+                cls="chart-card",
+            ),
+            Div(
+                Div("⊕", style="font-size:2rem;color:var(--ink-dim);margin-bottom:.5rem;"),
+                Div("Add report", style="font-size:.82rem;color:var(--ink-dim);"),
+                cls="report-template-card", style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:180px;",
+            ),
+            Div(
+                Div("⊕", style="font-size:2rem;color:var(--ink-dim);margin-bottom:.5rem;"),
+                Div("Add report", style="font-size:.82rem;color:var(--ink-dim);"),
+                cls="report-template-card", style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:180px;",
+            ),
+            cls="report-templates",
+        ),
+        H2("Saved Reports", style="margin-top:2rem;"),
+        Table(
+            Thead(Tr(Th("Name"), Th("Dashboards"), Th("Owner"), Th("Last Updated"), Th("Actions"))),
+            Tbody(
+                Tr(Td("Sales & Collections"), Td("1"), Td("User Name"), Td("2026-04-18"), Td("📤 ⬇ 🔗")),
+                Tr(Td("Sold VS Unsolds"), Td("1"), Td("User Name"), Td("2026-04-18"), Td("📤 ⬇ 🔗")),
+                Tr(Td("Post-Maturity Interest (Portfolio 1)"), Td("1"), Td("User Name"), Td("2026-04-18"), Td("📤 ⬇ 🔗")),
+                Tr(Td("Deal Expenses (All Portfolios)"), Td("2"), Td("User Name"), Td("2026-04-18"), Td("📤 ⬇ 🔗")),
+                Tr(Td("Net Principal (Portfolio 2)"), Td("4"), Td("User Name"), Td("2026-04-18"), Td("📤 ⬇ 🔗")),
+            ),
+        ),
+        Script("""
+        (function() {
+            var months = ['Jan','Feb','Mar','Apr','May','Jun'];
+            var lo = {margin:{t:5,r:10,b:25,l:40},paper_bgcolor:'transparent',plot_bgcolor:'transparent',font:{size:9,color:'#999'},xaxis:{showgrid:false},yaxis:{showgrid:true,gridcolor:'#E5E5E5'},showlegend:true,legend:{font:{size:8}}};
+            var cfg = {displayModeBar:false,responsive:true};
+            Plotly.newPlot('chart-rpt-sales',
+                [{x:months,y:[50,65,80,90,110,120],type:'scatter',name:'Sales',line:{color:'#0052CC'}},
+                 {x:months,y:[30,45,55,70,85,100],type:'scatter',name:'Collected',line:{color:'#16A34A'}}],lo,cfg);
+            Plotly.newPlot('chart-rpt-unsold',
+                [{x:months,y:[200,180,160,140,120,100],type:'scatter',name:'Sold',line:{color:'#0052CC'}},
+                 {x:months,y:[50,70,90,110,130,150],type:'scatter',name:'Unsold',line:{color:'#DC2626'}}],lo,cfg);
+        })();
+        """),
+        cls="module-content",
+    )
+
+
+@rt("/module/deals")
+def module_deals(session):
     from sqlalchemy import text
     from utils.db import get_pool
     try:
@@ -719,53 +940,395 @@ def module_pipeline(session, status_filter: str = ""):
         with pool.get_session() as s:
             rows = s.execute(text("""
                 SELECT deal_id, title, status, loan_amount, borrower_name, genre
-                FROM ahmf.deals ORDER BY status, created_at DESC
+                FROM ahmf.deals ORDER BY created_at DESC
             """)).fetchall()
     except Exception:
         rows = []
 
-    by_stage: dict[str, list] = {}
-    for r in rows:
-        stage = r[2] or "pipeline"
-        by_stage.setdefault(stage, []).append(r)
-
-    columns = []
-    for stage_key, stage_label in PIPELINE_STAGES:
-        cards = by_stage.get(stage_key, [])
-        columns.append(Div(
-            Div(
-                Span(stage_label, cls="col-title"),
-                Span(str(len(cards)), cls="col-count"),
-                cls="col-head",
-                style=f"border-bottom-color:{STAGE_COLORS.get(stage_key, '#CFC8B4')}",
-            ),
-            Div(*[_pipeline_card(c) for c in cards], cls="col-body"),
-            cls="kanban-col",
-        ))
-
-    filters = Div(
-        Button("All", cls=f"filter-chip{' active' if not status_filter else ''}",
-               hx_get="/module/pipeline", hx_target="#center-content", hx_swap="innerHTML"),
-        *[Button(label, cls=f"filter-chip{' active' if status_filter == key else ''}",
-                 hx_get=f"/module/pipeline?status_filter={key}", hx_target="#center-content", hx_swap="innerHTML")
-          for key, label in PIPELINE_STAGES],
-        cls="pipeline-filters",
-    )
+    deal_cards = [_deal_poster_card(d) for d in rows]
+    if not deal_cards:
+        deal_cards = [Div("No deals yet.", cls="empty-state")]
 
     return Div(
-        filters,
-        Div(*columns, cls="kanban-board"),
         Div(
-            Button("+ New Deal", cls="auth-btn", hx_get="/module/deal/new", hx_target="#center-content", hx_swap="innerHTML"),
-            style="padding:0.75rem 1.1rem;",
+            H1("Deals"),
+            Div(
+                Button("Filter", cls="filter-chip"),
+                Button("Sort", cls="filter-chip"),
+                Button("List view", cls="filter-chip"),
+                cls="deal-toolbar-btns",
+            ),
+            Button("New Deal +", cls="new-deal-btn",
+                   hx_get="/module/deal/new", hx_target="#center-content", hx_swap="innerHTML"),
+            cls="deals-header",
         ),
-        cls="pipeline-center",
+        Div(*deal_cards, cls="deals-grid"),
+        cls="module-content",
     )
 
 
-@rt("/module/deals")
-def module_deals(session):
-    return module_pipeline(session)
+@rt("/module/deal/{deal_id}")
+def module_deal_detail(deal_id: str, session):
+    from sqlalchemy import text as sa_text
+    from utils.db import get_pool
+    pool = get_pool()
+    with pool.get_session() as s:
+        deal = s.execute(sa_text("""
+            SELECT deal_id, title, project_type, genre, status, loan_amount,
+                   currency, interest_rate, term_months, borrower_name,
+                   producer, director, cast_summary, budget, territory,
+                   origination_date, maturity_date, collateral_type
+            FROM ahmf.deals WHERE deal_id = :did
+        """), {"did": deal_id}).fetchone()
+        contracts = s.execute(sa_text("""
+            SELECT sc.territory, c.name AS distributor, sc.mg_amount, sc.status
+            FROM ahmf.sales_contracts sc
+            LEFT JOIN ahmf.contacts c ON c.contact_id = sc.distributor_id
+            WHERE sc.deal_id = :did ORDER BY sc.territory
+        """), {"did": deal_id}).fetchall()
+        txns = s.execute(sa_text("""
+            SELECT t.txn_type, t.amount, t.currency, c.name, t.posted_date, t.reference
+            FROM ahmf.transactions t
+            LEFT JOIN ahmf.contacts c ON c.contact_id = t.counterparty_id
+            WHERE t.deal_id = :did ORDER BY t.posted_date DESC LIMIT 10
+        """), {"did": deal_id}).fetchall()
+        tasks = s.execute(sa_text("""
+            SELECT subject, due_date, status FROM ahmf.messages
+            WHERE deal_id = :did AND message_type='task'
+            ORDER BY due_date ASC NULLS LAST LIMIT 6
+        """), {"did": deal_id}).fetchall()
+
+    if not deal:
+        return Div(P("Deal not found."), cls="module-content")
+
+    title = deal[1]
+    project_type = (deal[2] or "feature_film").replace("_", " ").title()
+    genre = (deal[3] or "").replace("_", " ").title()
+    status = deal[4] or "pipeline"
+    loan = float(deal[5]) if deal[5] else 0
+    currency = deal[6] or "USD"
+    rate = float(deal[7]) if deal[7] else 0
+    term = deal[8] or 12
+    borrower = deal[9] or "—"
+    producer = deal[10] or "—"
+    director = deal[11] or "—"
+    cast = deal[12] or "—"
+    budget = float(deal[13]) if deal[13] else 0
+    territory = deal[14] or "—"
+    orig_date = deal[15] or "—"
+    mat_date = deal[16] or "—"
+    collateral_type = deal[17] or "Pre-Sales"
+    status_color = STATUS_COLORS.get(status, "#CFC8B4")
+    gradient = GENRE_GRADIENTS.get(genre.lower(), GENRE_GRADIENTS["default"])
+
+    interest_reserve = loan * rate / 100 * term / 12
+    gross_loan = loan + interest_reserve
+    ep_fees = loan * 0.03
+    projected_irr = rate * 1.3
+
+    total_sold = sum(float(c[2]) for c in contracts if c[2]) if contracts else 0
+    total_unsold = loan - total_sold if loan else 0
+
+    # Hero banner
+    hero = Div(
+        Div(title, cls="hero-title"),
+        Div(str(orig_date)[:4] if orig_date != "—" else "2026", cls="hero-year"),
+        cls="deal-hero", style=f"background:{gradient};",
+    )
+
+    # Overview
+    overview = Div(
+        H2("Overview"),
+        P(f"{title} is a {genre.lower()} {project_type.lower()} produced by {producer}, "
+          f"directed by {director}. Budget: ${budget:,.0f}. Borrower: {borrower}. "
+          f"Cast: {cast}. Territory: {territory}.",
+          style="color:var(--ink-muted);line-height:1.6;"),
+        cls="deal-section",
+    )
+
+    # Key Terms cards
+    key_terms = Div(
+        H2("Key Terms"),
+        Div(
+            Div(
+                Div("Loan Balance", cls="kpi-label"),
+                Div(f"${loan:,.0f}", cls="kpi-value"),
+                Div(
+                    Div(f"Net Loan Facility: ${loan:,.0f}", style="font-size:.72rem;color:var(--ink-dim);margin-top:.5rem;"),
+                    Div(f"Interest Reserve: ${interest_reserve:,.0f}", style="font-size:.72rem;color:var(--ink-dim);"),
+                    Div(f"Gross Loan Facility: ${gross_loan:,.0f}", style="font-size:.72rem;color:var(--ink-dim);"),
+                    Div(f"EP Fees: ${ep_fees:,.0f}", style="font-size:.72rem;color:var(--ink-dim);"),
+                    Div(f"Projected IRR: {projected_irr:.1f}%", style="font-size:.72rem;color:var(--ink-dim);"),
+                ),
+                cls="chart-card",
+            ),
+            Div(
+                Div("Finance Plan", cls="kpi-label"),
+                Div(id="chart-finance-plan", style="height:160px;"),
+                cls="chart-card",
+            ),
+            Div(
+                Div("Collateral Breakdown", cls="kpi-label"),
+                Div(id="chart-collateral", style="height:160px;"),
+                cls="chart-card",
+            ),
+            cls="charts-row charts-row-3",
+        ),
+        cls="deal-section",
+    )
+
+    # Collateral & Receivables (SOW section)
+    presales_amt = total_sold
+    gap_unsold_amt = total_unsold
+    tax_credit_amt = loan * 0.15
+    deferral_amt = loan * 0.05
+    collateral_total = presales_amt + gap_unsold_amt + tax_credit_amt + deferral_amt
+    principal_pct = 0.65
+    interest_pct = 0.35
+    covered = collateral_total >= loan
+
+    collateral_receivables = Div(
+        H2("Collateral & Receivables"),
+        Div(
+            Div(
+                Div(Span("●", style=f"color:{'#16a34a' if covered else '#dc2626'};margin-right:.5rem;"),
+                    "Covered" if covered else "Uncovered",
+                    style="font-size:.85rem;font-weight:600;margin-bottom:.75rem;"),
+                Div("Loan Balance", style="font-size:.72rem;color:var(--ink-dim);margin-bottom:.5rem;"),
+                Div(id="chart-cr-loan", style="height:140px;"),
+                Div(
+                    Div(Span("Net Loan Facility", style="color:var(--ink-dim);font-size:.7rem;"),
+                        Span(f"${loan:,.0f}", style="font-size:.7rem;font-weight:500;"), cls="sidebar-kv"),
+                    Div(Span("Stated Interest", style="color:var(--ink-dim);font-size:.7rem;"),
+                        Span(f"${interest_reserve:,.0f}", style="font-size:.7rem;font-weight:500;"), cls="sidebar-kv"),
+                    Div(Span("Post-Maturity Interest", style="color:var(--ink-dim);font-size:.7rem;"),
+                        Span(f"${loan * 0.02:,.0f}", style="font-size:.7rem;font-weight:500;"), cls="sidebar-kv"),
+                    Div(Span("Other Interest", style="color:var(--ink-dim);font-size:.7rem;"),
+                        Span(f"${loan * 0.01:,.0f}", style="font-size:.7rem;font-weight:500;"), cls="sidebar-kv"),
+                    Div(Span("Interest Repayments", style="color:var(--ink-dim);font-size:.7rem;"),
+                        Span(f"$ ({loan * 0.005:,.0f})", style="font-size:.7rem;font-weight:500;color:var(--red);"), cls="sidebar-kv"),
+                ),
+                cls="chart-card",
+            ),
+            Div(
+                Div("Collateral", style="font-size:.72rem;color:var(--ink-dim);margin-bottom:.25rem;"),
+                Div(f"${collateral_total:,.0f}", style="font-size:1.1rem;font-weight:700;margin-bottom:.5rem;"),
+                Div(id="chart-cr-collateral", style="height:180px;"),
+                cls="chart-card",
+            ),
+            cls="charts-row",
+        ),
+        cls="deal-section",
+    )
+
+    # Sales & Collections
+    sc_rows = []
+    for c in contracts:
+        sc_color = {"active": "#16a34a", "completed": "#0052CC", "draft": "#94a3b8"}.get(c[3], "#64748b")
+        sc_rows.append(Tr(
+            Td(c[0] or "—"), Td(c[1] or "—"),
+            Td(f"${float(c[2]):,.0f}" if c[2] else "—"),
+            Td(Span((c[3] or "draft").title(), cls="status-pill", style=f"background:{sc_color}20;color:{sc_color};")),
+        ))
+
+    sales_section = Div(
+        H2("Sales & Collections"),
+        Div(
+            Div(Div("Sales & Collected", cls="chart-title"), Div(id="chart-deal-sales", style="height:140px;"), cls="chart-card"),
+            Div(Div("Sold vs Unsold", cls="chart-title"), Div(id="chart-deal-unsold", style="height:140px;"), cls="chart-card"),
+            cls="charts-row",
+        ),
+        Table(
+            Thead(Tr(Th("Territory"), Th("Distributor"), Th("MG Amount"), Th("Status"))),
+            Tbody(*sc_rows) if sc_rows else Tbody(Tr(Td("No contracts.", colspan="4", style="color:var(--ink-dim);text-align:center;"))),
+        ) if True else "",
+        cls="deal-section",
+    )
+
+    # Tax Incentives, Guarantees, & Collections (SOW section)
+    import random as _rnd
+    _rnd.seed(hash(str(deal[0])) % 10000)
+    territories_data = [
+        {"name": "United Kingdom", "estimated": "$880,000", "funded": "$660,000", "currency": "GBP", "fx": "1.32",
+         "balance": loan * 0.08},
+        {"name": "Germany", "estimated": "$350,000", "funded": "$280,000", "currency": "EUR", "fx": "1.32",
+         "balance": loan * 0.05},
+    ]
+    terr_cards = []
+    for idx, td_item in enumerate(territories_data):
+        terr_cards.append(Div(
+            Div(
+                Div(td_item["name"], style="font-weight:600;font-size:.88rem;"),
+                Div("↗", style="color:var(--blue);cursor:pointer;"),
+                style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;",
+            ),
+            Div(
+                Div(Span("Estimated (MFN)", style="color:var(--ink-dim);font-size:.7rem;"),
+                    Span(td_item["estimated"], style="font-size:.7rem;font-weight:500;"), cls="sidebar-kv"),
+                Div(Span("Funded (MFN)", style="color:var(--ink-dim);font-size:.7rem;"),
+                    Span(td_item["funded"], style="font-size:.7rem;font-weight:500;"), cls="sidebar-kv"),
+            ),
+            Div(id=f"chart-terr-{idx}", style="height:80px;margin:.5rem 0;"),
+            Div(
+                Div(Span("Original Currency", style="color:var(--ink-dim);font-size:.65rem;"),
+                    Span(td_item["currency"], style="font-size:.65rem;"), cls="sidebar-kv"),
+                Div(Span("FX (Converted)", style="color:var(--ink-dim);font-size:.65rem;"),
+                    Span(td_item["fx"], style="font-size:.65rem;"), cls="sidebar-kv"),
+                Div(Span("Balance:", style="color:var(--ink-dim);font-size:.72rem;font-weight:600;"),
+                    Span(f"${td_item['balance']:,.0f}", style="font-size:.85rem;font-weight:700;"), cls="sidebar-kv"),
+            ),
+            cls="chart-card",
+        ))
+
+    tax_incentives = Div(
+        H2("Tax Incentives, Guarantees, & Collections"),
+        Div(*terr_cards, cls="charts-row"),
+        cls="deal-section",
+    )
+
+    # Right sidebar: Key Terms, Projection, Transactions, Tasks
+    txn_items = []
+    for t in txns:
+        sign = "-" if t[0] == "disbursement" else "+"
+        color = "#dc2626" if t[0] == "disbursement" else "#16a34a"
+        txn_items.append(Div(
+            Div(Span(t[5] or t[0].title(), style="font-size:.72rem;"), cls="txn-ref"),
+            Div(f"{sign}${float(t[1]):,.0f}" if t[1] else "—", style=f"font-size:.78rem;font-weight:600;color:{color};"),
+            cls="sidebar-txn-item",
+        ))
+
+    task_items = []
+    for t in tasks:
+        task_items.append(Div(
+            Span("○", style="color:var(--ink-dim);"),
+            Span(t[0] or "Task", style="font-size:.76rem;flex:1;"),
+            Span(str(t[1]) if t[1] else "", style="font-size:.66rem;color:var(--red);"),
+            cls="sidebar-task-item",
+        ))
+
+    right_sidebar = Div(
+        Div(
+            H3("Key Terms", style="font-size:.85rem;"),
+            Div(Span("AH Lead", style="color:var(--ink-dim);font-size:.72rem;"), Span(producer, style="font-size:.72rem;font-weight:500;"), cls="sidebar-kv"),
+            Div(Span("Prod. Co.", style="color:var(--ink-dim);font-size:.72rem;"), Span(borrower, style="font-size:.72rem;font-weight:500;"), cls="sidebar-kv"),
+            Div(Span("Sales Agent", style="color:var(--ink-dim);font-size:.72rem;"), Span("CAA Media Finance", style="font-size:.72rem;font-weight:500;"), cls="sidebar-kv"),
+            Div(Span("CAA Agent", style="color:var(--ink-dim);font-size:.72rem;"), Span("Freeway Entertainment", style="font-size:.72rem;font-weight:500;"), cls="sidebar-kv"),
+            cls="sidebar-card",
+        ),
+        Div(
+            H3("Projection", style="font-size:.85rem;"),
+            Div(f"{term} Months", style="font-size:1.2rem;font-weight:700;"),
+            Div("Post-maturity coverage", style="font-size:.68rem;color:var(--ink-dim);"),
+            Div(Span("Maturity Date", style="color:var(--ink-dim);font-size:.72rem;"), Span(str(mat_date), style="font-size:.72rem;font-weight:500;"), cls="sidebar-kv"),
+            cls="sidebar-card",
+        ),
+        Div(
+            H3("Transactions", style="font-size:.85rem;"),
+            *(txn_items if txn_items else [Div("No transactions", style="font-size:.72rem;color:var(--ink-dim);")]),
+            cls="sidebar-card",
+        ),
+        Div(
+            H3("Project Tasks", style="font-size:.85rem;"),
+            *(task_items if task_items else [Div("No tasks", style="font-size:.72rem;color:var(--ink-dim);")]),
+            cls="sidebar-card",
+        ),
+        cls="deal-right-sidebar",
+    )
+
+    # Communication log
+    comms = Div(
+        H2("Communication & Action Log"),
+        Table(
+            Thead(Tr(Th("From"), Th("Subject"), Th("Date"), Th("Actions"))),
+            Tbody(
+                Tr(Td(producer), Td(f"{title} — Production Meeting"), Td(str(orig_date)), Td("↗ ⭐ 🔗")),
+                Tr(Td(borrower), Td(f"{title} — Budget Review"), Td(str(orig_date)), Td("↗ ⭐ 🔗")),
+            ),
+        ),
+        cls="deal-section",
+    )
+
+    pre_sales_pct = (total_sold / loan * 100) if loan else 0
+    unsold_pct = 100 - pre_sales_pct
+    tax_pct = 15
+
+    chart_js = Script(f"""
+    (function() {{
+        var cfg = {{displayModeBar:false,responsive:true}};
+        var lo = {{margin:{{t:5,r:5,b:5,l:5}},paper_bgcolor:'transparent',plot_bgcolor:'transparent',showlegend:true,legend:{{font:{{size:9}}}}}};
+
+        // Finance Plan donut
+        Plotly.newPlot('chart-finance-plan',
+            [{{values:[{pre_sales_pct:.0f},{unsold_pct:.0f},{tax_pct}],labels:['Pre-Sales','Unsold','Tax Credits'],type:'pie',hole:.55,
+               marker:{{colors:['#0052CC','#93C5FD','#16A34A']}},textinfo:'label+percent',textfont:{{size:9}}}}],
+            {{...lo,margin:{{t:10,r:10,b:10,l:10}}}},cfg);
+
+        // Collateral Breakdown
+        Plotly.newPlot('chart-collateral',
+            [{{x:['Pre-Sales','Gap/Unsold','Tax Credits','Deferrals'],y:[{total_sold:.0f},{total_unsold:.0f},{loan*0.15:.0f},{loan*0.05:.0f}],
+               type:'bar',marker:{{color:['#0052CC','#93C5FD','#16A34A','#F59E0B']}}}},],
+            {{...lo,margin:{{t:10,r:10,b:30,l:45}},xaxis:{{showgrid:false,tickfont:{{size:8}}}},yaxis:{{showgrid:true,gridcolor:'#E5E5E5',tickfont:{{size:8}}}}}},cfg);
+
+        // Sales & Collected line
+        var months = ['Jan','Feb','Mar','Apr','May','Jun'];
+        Plotly.newPlot('chart-deal-sales',
+            [{{x:months,y:[{total_sold*0.1:.0f},{total_sold*0.25:.0f},{total_sold*0.45:.0f},{total_sold*0.65:.0f},{total_sold*0.85:.0f},{total_sold:.0f}],
+               type:'scatter',name:'Sales',line:{{color:'#0052CC'}}}},
+             {{x:months,y:[0,{total_sold*0.1:.0f},{total_sold*0.2:.0f},{total_sold*0.4:.0f},{total_sold*0.6:.0f},{total_sold*0.8:.0f}],
+               type:'scatter',name:'Collected',line:{{color:'#16A34A'}}}}],
+            {{...lo,margin:{{t:5,r:10,b:25,l:45}},xaxis:{{showgrid:false}},yaxis:{{showgrid:true,gridcolor:'#E5E5E5'}}}},cfg);
+
+        // Collateral & Receivables - Loan Balance stacked bar
+        Plotly.newPlot('chart-cr-loan',
+            [{{y:['Loan Balance'],x:[{loan*principal_pct:.0f}],type:'bar',orientation:'h',name:'Principal',marker:{{color:'#0052CC'}}}},
+             {{y:['Loan Balance'],x:[{loan*interest_pct:.0f}],type:'bar',orientation:'h',name:'Interest',marker:{{color:'#93C5FD'}}}}],
+            {{...lo,margin:{{t:5,r:10,b:25,l:80}},barmode:'stack',yaxis:{{showgrid:false}},xaxis:{{showgrid:true,gridcolor:'#E5E5E5'}},
+              showlegend:true,legend:{{font:{{size:8}},orientation:'h',y:-0.3}}}},cfg);
+
+        // Collateral stacked area
+        Plotly.newPlot('chart-cr-collateral',
+            [{{x:months,y:[{presales_amt*0.2:.0f},{presales_amt*0.4:.0f},{presales_amt*0.6:.0f},{presales_amt*0.8:.0f},{presales_amt*0.9:.0f},{presales_amt:.0f}],
+               type:'scatter',fill:'tozeroy',name:'Presales',fillcolor:'rgba(0,82,204,0.3)',line:{{color:'#0052CC'}}}},
+             {{x:months,y:[{gap_unsold_amt:.0f},{gap_unsold_amt*0.95:.0f},{gap_unsold_amt*0.9:.0f},{gap_unsold_amt*0.85:.0f},{gap_unsold_amt*0.8:.0f},{gap_unsold_amt*0.75:.0f}],
+               type:'scatter',fill:'tonexty',name:'Unsold',fillcolor:'rgba(147,197,253,0.3)',line:{{color:'#93C5FD'}}}},
+             {{x:months,y:[{tax_credit_amt:.0f},{tax_credit_amt:.0f},{tax_credit_amt:.0f},{tax_credit_amt:.0f},{tax_credit_amt:.0f},{tax_credit_amt:.0f}],
+               type:'scatter',fill:'tonexty',name:'Tax Credits',fillcolor:'rgba(22,163,74,0.2)',line:{{color:'#16A34A'}}}}],
+            {{...lo,margin:{{t:5,r:10,b:25,l:50}},xaxis:{{showgrid:false}},yaxis:{{showgrid:true,gridcolor:'#E5E5E5'}},
+              showlegend:true,legend:{{font:{{size:8}},orientation:'h',y:-0.25}}}},cfg);
+
+        // Territory mini charts
+        var terrMonths = ['Jan','Feb','Mar','Apr','May','Jun'];
+        var terrLo = {{margin:{{t:2,r:5,b:15,l:30}},paper_bgcolor:'transparent',plot_bgcolor:'transparent',
+                       font:{{size:7,color:'#999'}},xaxis:{{showgrid:false,tickfont:{{size:7}}}},yaxis:{{showgrid:true,gridcolor:'#EEE',tickfont:{{size:7}}}},showlegend:false,height:80}};
+        if(document.getElementById('chart-terr-0'))
+            Plotly.newPlot('chart-terr-0',[{{x:terrMonths,y:[{loan*0.01:.0f},{loan*0.02:.0f},{loan*0.035:.0f},{loan*0.05:.0f},{loan*0.065:.0f},{loan*0.08:.0f}],
+               type:'scatter',line:{{color:'#0052CC',width:1.5}}}}],terrLo,cfg);
+        if(document.getElementById('chart-terr-1'))
+            Plotly.newPlot('chart-terr-1',[{{x:terrMonths,y:[{loan*0.005:.0f},{loan*0.012:.0f},{loan*0.02:.0f},{loan*0.03:.0f},{loan*0.04:.0f},{loan*0.05:.0f}],
+               type:'scatter',line:{{color:'#0052CC',width:1.5}}}}],terrLo,cfg);
+
+        // Sold vs Unsold
+        Plotly.newPlot('chart-deal-unsold',
+            [{{x:months,y:[{total_unsold:.0f},{total_unsold*0.9:.0f},{total_unsold*0.75:.0f},{total_unsold*0.6:.0f},{total_unsold*0.45:.0f},{total_unsold*0.3:.0f}],
+               type:'scatter',name:'Unsold',line:{{color:'#DC2626'}}}},
+             {{x:months,y:[{total_sold*0.1:.0f},{total_sold*0.25:.0f},{total_sold*0.45:.0f},{total_sold*0.65:.0f},{total_sold*0.85:.0f},{total_sold:.0f}],
+               type:'scatter',name:'Sold',line:{{color:'#0052CC'}}}}],
+            {{...lo,margin:{{t:5,r:10,b:25,l:45}},xaxis:{{showgrid:false}},yaxis:{{showgrid:true,gridcolor:'#E5E5E5'}}}},cfg);
+    }})();
+    """)
+
+    return Div(
+        hero,
+        Div(
+            Div(overview, key_terms, collateral_receivables, sales_section, tax_incentives, comms, cls="deal-main-col"),
+            right_sidebar,
+            cls="deal-detail-layout",
+        ),
+        chart_js,
+        Button("← Back to Deals", cls="filter-chip", style="margin:1rem 0;",
+               onclick="loadModule('/module/deals','Deals')"),
+        cls="module-content deal-detail-page",
+    )
 
 
 @rt("/module/deal/new")
@@ -853,16 +1416,26 @@ def module_contacts(session):
         pool = get_pool()
         with pool.get_session() as s:
             contacts = s.execute(text("""
-                SELECT contact_id, name, company, contact_type, email, phone
-                FROM ahmf.contacts ORDER BY name LIMIT 50
+                SELECT c.contact_id, c.name, c.company, c.contact_type, c.email, c.phone,
+                       cr.risk_tier
+                FROM ahmf.contacts c
+                LEFT JOIN ahmf.credit_ratings cr ON c.contact_id = cr.contact_id
+                ORDER BY c.name LIMIT 50
             """)).fetchall()
     except Exception:
         contacts = []
 
     rows = []
     for c in contacts:
+        cid = str(c[0])
+        tier = c[6] or "—"
         rows.append(Tr(
-            Td(c[1]), Td(c[2] or "—"), Td(c[3]), Td(c[4] or "—"), Td(c[5] or "—"),
+            Td(A(c[1], href="#", onclick=f"loadModule('/module/contact/{cid}','Contacts — {c[1]}');return false;",
+                 style="color:var(--blue);text-decoration:none;font-weight:500;")),
+            Td(c[2] or "—"), Td((c[3] or "").replace("_", " ").title()),
+            Td(tier), Td(c[4] or "—"), Td(c[5] or "—"),
+            style="cursor:pointer;",
+            onclick=f"loadModule('/module/contact/{cid}','Contacts — {c[1]}')",
         ))
 
     return Div(
@@ -872,8 +1445,8 @@ def module_contacts(session):
             style="display:flex;justify-content:space-between;align-items:center;",
         ),
         Table(
-            Thead(Tr(Th("Name"), Th("Company"), Th("Type"), Th("Email"), Th("Phone"))),
-            Tbody(*rows) if rows else Tbody(Tr(Td("No contacts yet.", colspan="5", style="text-align:center;padding:2rem;color:#64748b;"))),
+            Thead(Tr(Th("Name"), Th("Company"), Th("Type"), Th("Rating"), Th("Email"), Th("Phone"))),
+            Tbody(*rows) if rows else Tbody(Tr(Td("No contacts yet.", colspan="6", style="text-align:center;padding:2rem;color:#64748b;"))),
             style="width:100%;border-collapse:collapse;margin-top:1rem;",
         ) if True else "",
         cls="module-content",
@@ -923,6 +1496,307 @@ def contact_create(session, name: str, company: str = "", contact_type: str = "o
         """), {"name": name, "company": company, "type": contact_type, "email": email,
                "phone": phone, "notes": notes, "uid": user_id})
     return module_contacts(session)
+
+
+@rt("/module/contact/{contact_id}")
+def module_contact_detail(contact_id: str, session, tab: str = "details"):
+    from sqlalchemy import text as sa_text
+    from utils.db import get_pool
+    pool = get_pool()
+    with pool.get_session() as s:
+        contact = s.execute(sa_text("""
+            SELECT contact_id, name, company, role, email, phone, contact_type,
+                   credit_score, notes, created_at
+            FROM ahmf.contacts WHERE contact_id = :cid
+        """), {"cid": contact_id}).fetchone()
+    if not contact:
+        return Div(P("Contact not found."), cls="module-content")
+
+    cid = str(contact[0])
+    name = contact[1] or "—"
+    company = contact[2] or "—"
+    role = contact[3] or "—"
+    email = contact[4] or "—"
+    phone = contact[5] or "—"
+    ctype = (contact[6] or "other").replace("_", " ").title()
+    notes = contact[8] or "—"
+
+    tabs = ["Details", "Deals", "Communications", "Analytics"]
+    tab_links = []
+    for t in tabs:
+        slug = t.lower()
+        active = "contact-tab active" if slug == tab else "contact-tab"
+        tab_links.append(
+            A(t, href="#", cls=active,
+              hx_get=f"/module/contact/{cid}/tab/{slug}",
+              hx_target="#contact-tab-content", hx_swap="innerHTML",
+              onclick="document.querySelectorAll('.contact-tab').forEach(t=>t.classList.remove('active'));this.classList.add('active');")
+        )
+
+    tab_content = _contact_tab_content(cid, tab, pool)
+
+    return Div(
+        Div(
+            H1(f"{name}"),
+            Div(Span(ctype, cls="status-pill", style="background:#E8F0FE;color:var(--blue);"),
+                Span(company, style="color:var(--ink-muted);margin-left:.75rem;font-size:.9rem;"),
+                style="display:flex;align-items:center;gap:.5rem;margin-top:.25rem;"),
+            cls="contact-header",
+        ),
+        Div(*tab_links, cls="contact-tabs"),
+        Div(tab_content, id="contact-tab-content"),
+        Button("← Back to Contacts", cls="filter-chip", style="margin:1rem 0;",
+               onclick="loadModule('/module/contacts','Contacts')"),
+        cls="module-content",
+    )
+
+
+@rt("/module/contact/{contact_id}/tab/{tab}")
+def contact_tab(contact_id: str, tab: str, session):
+    from utils.db import get_pool
+    pool = get_pool()
+    return _contact_tab_content(contact_id, tab, pool)
+
+
+def _contact_tab_content(contact_id, tab, pool):
+    from sqlalchemy import text as sa_text
+    import random
+    random.seed(hash(contact_id) % 10000)
+
+    if tab == "details":
+        with pool.get_session() as s:
+            c = s.execute(sa_text("""
+                SELECT name, company, role, email, phone, contact_type, notes, created_at
+                FROM ahmf.contacts WHERE contact_id = :cid
+            """), {"cid": contact_id}).fetchone()
+        if not c:
+            return Div(P("Contact not found."))
+        return Div(
+            Div(
+                Div(Div("Name", cls="detail-label"), Div(c[0] or "—", cls="detail-value"), cls="detail-row"),
+                Div(Div("Company", cls="detail-label"), Div(c[1] or "—", cls="detail-value"), cls="detail-row"),
+                Div(Div("Role", cls="detail-label"), Div(c[2] or "—", cls="detail-value"), cls="detail-row"),
+                Div(Div("Type", cls="detail-label"), Div((c[5] or "").replace("_", " ").title(), cls="detail-value"), cls="detail-row"),
+                Div(Div("Email", cls="detail-label"), Div(c[3] or "—", cls="detail-value"), cls="detail-row"),
+                Div(Div("Phone", cls="detail-label"), Div(c[4] or "—", cls="detail-value"), cls="detail-row"),
+                Div(Div("Notes", cls="detail-label"), Div(c[6] or "—", cls="detail-value"), cls="detail-row"),
+                Div(Div("Created", cls="detail-label"), Div(str(c[7])[:10] if c[7] else "—", cls="detail-value"), cls="detail-row"),
+                cls="contact-details-grid",
+            ),
+        )
+
+    elif tab == "deals":
+        with pool.get_session() as s:
+            cr = s.execute(sa_text("""
+                SELECT score, risk_tier FROM ahmf.credit_ratings WHERE contact_id = :cid LIMIT 1
+            """), {"cid": contact_id}).fetchone()
+            sc = s.execute(sa_text("""
+                SELECT sc.deal_id, d.title, d.status, d.loan_amount, d.interest_rate, d.origination_date
+                FROM ahmf.sales_contracts sc
+                JOIN ahmf.deals d ON d.deal_id = sc.deal_id
+                WHERE sc.distributor_id = :cid
+                ORDER BY d.origination_date DESC
+            """), {"cid": contact_id}).fetchall()
+
+        deal_rows = []
+        if sc:
+            seen = set()
+            for r in sc:
+                did = str(r[0])
+                if did in seen:
+                    continue
+                seen.add(did)
+                st = r[2] or "pipeline"
+                st_colors = {"active": "#16a34a", "closed": "#0052CC", "pipeline": "#F59E0B", "declined": "#dc2626"}
+                sc_color = st_colors.get(st, "#64748b")
+                deal_rows.append(Tr(
+                    Td(A("↗", href="#", onclick=f"loadModule('/module/deal/{did}','{r[1]}');return false;",
+                         style="color:var(--blue);text-decoration:none;")),
+                    Td(did[:8].upper()),
+                    Td(Span(st.title(), cls="status-pill", style=f"background:{sc_color}20;color:{sc_color};")),
+                    Td(f"${float(r[3]):,.0f}" if r[3] else "—"),
+                    Td(f"${float(r[3]) * 0.7:,.0f}" if r[3] else "—"),
+                    Td(f"{float(r[4]):.1f}%" if r[4] else "—"),
+                    Td(str(r[5])[:10] if r[5] else "—"),
+                ))
+
+        if not deal_rows:
+            statuses = ["Complete", "Live", "Profit Sharing"]
+            for i in range(8):
+                st = random.choice(statuses)
+                sc_color = {"Complete": "#16a34a", "Live": "#F59E0B", "Profit Sharing": "#0052CC"}.get(st, "#64748b")
+                loan = random.randint(2, 8) * 500000
+                deal_rows.append(Tr(
+                    Td("↗", style="color:var(--blue);"),
+                    Td(f"AH-{random.randint(1000,9999)}"),
+                    Td(Span(st, cls="status-pill", style=f"background:{sc_color}20;color:{sc_color};")),
+                    Td(f"${loan:,.0f}"),
+                    Td(f"${int(loan * 0.65):,.0f}" if st != "Complete" else "—"),
+                    Td(f"{random.uniform(12, 18):.1f}%"),
+                    Td(f"2024-{random.randint(1,12):02d}-{random.randint(1,28):02d}"),
+                ))
+
+        return Div(
+            Div(
+                Button("⊕ New Report", cls="filter-chip"),
+                Button("⊲ Filter", cls="filter-chip"),
+                Button("⊞ List view", cls="filter-chip"),
+                style="display:flex;gap:.5rem;justify-content:flex-end;margin-bottom:1rem;",
+            ),
+            Table(
+                Thead(Tr(Th(""), Th("Deal ID"), Th("Status"), Th("Net Loan"), Th("Loan Balance"),
+                         Th("IRR (Projected/Actual)"), Th("Funding Date"))),
+                Tbody(*deal_rows),
+            ),
+        )
+
+    elif tab == "communications":
+        senders = ["Lewis Carter", "Mike Rossi", "Eddie Smith", "Will Turner", "Luke Ripley"]
+        subjects = ["Production Meeting 8:30PM", "China's DA", "Inception — Here It Is!",
+                     "Private & Confidential", "Production Trial Balance"]
+        comm_rows = []
+        for i in range(5):
+            comm_rows.append(Tr(
+                Td(Span("→", style="color:var(--blue);margin-right:.5rem;"), senders[i]),
+                Td(subjects[i]),
+                Td(f"2025-06-{18+i}"),
+                Td("↗ ⭐ 🔗"),
+            ))
+        return Div(
+            Table(
+                Thead(Tr(Th("From"), Th("Subject"), Th("Date"), Th("Actions"))),
+                Tbody(*comm_rows),
+            ),
+        )
+
+    elif tab == "analytics":
+        with pool.get_session() as s:
+            cr = s.execute(sa_text("""
+                SELECT score, risk_tier, payment_reliability, factors
+                FROM ahmf.credit_ratings WHERE contact_id = :cid LIMIT 1
+            """), {"cid": contact_id}).fetchone()
+
+        score_val = float(cr[0]) if cr and cr[0] else random.uniform(60, 95)
+        tier = cr[1] if cr else random.choice(["AAA", "AA", "A", "BBB"])
+        total_deals = random.randint(5, 15)
+        senior_pct = random.randint(50, 80)
+        bridge_pct = random.randint(10, 30)
+        live_pct = random.randint(10, 30)
+        profit_pct = random.randint(30, 60)
+        completed_pct = random.randint(20, 50)
+
+        deals_labels = [f"Deal {i+1}" for i in range(7)]
+        term_per_deal = [random.randint(8, 28) for _ in range(7)]
+        term_avg = sum(term_per_deal) / len(term_per_deal)
+        irr_per_deal = [round(random.uniform(6, 18), 1) for _ in range(7)]
+        irr_avg = sum(irr_per_deal) / len(irr_per_deal)
+        ep_fees = [random.randint(30000, 80000) for _ in range(7)]
+        coprod_fees = [random.randint(10000, 40000) for _ in range(7)]
+        other_fees = [random.randint(5000, 20000) for _ in range(7)]
+        init_interest = [random.randint(200000, 600000) for _ in range(7)]
+        special_interest = [random.randint(50000, 200000) for _ in range(7)]
+        post_mat_interest = [random.randint(20000, 100000) for _ in range(7)]
+        total_fee = sum(ep_fees) + sum(coprod_fees) + sum(other_fees)
+        total_interest = sum(init_interest) + sum(special_interest) + sum(post_mat_interest)
+
+        irr_max = max(irr_per_deal) + 5
+        weighted_avg = [term_avg + random.uniform(-2, 2) for _ in range(7)]
+
+        return Div(
+            Div(
+                Div(
+                    Div("Credit Score", cls="kpi-label", style="font-size:.8rem;"),
+                    Div(tier, style="font-size:2rem;font-weight:700;margin:.5rem 0;"),
+                    Div("Deal History", style="font-size:.75rem;font-weight:600;color:var(--ink-muted);margin-top:1rem;"),
+                    Div(
+                        Div(Span("Total Deals", style="color:var(--ink-dim);"), Span(str(total_deals), style="font-weight:600;"), cls="sidebar-kv"),
+                        Div(Span("Senior", style="color:var(--ink-dim);"), Span(f"{senior_pct}% ({int(total_deals*senior_pct/100)} deals)", style="font-size:.72rem;"), cls="sidebar-kv"),
+                        Div(Span("Bridge", style="color:var(--ink-dim);"), Span(f"{bridge_pct}% ({int(total_deals*bridge_pct/100)} deals)", style="font-size:.72rem;"), cls="sidebar-kv"),
+                        Div(Span("Live", style="color:var(--ink-dim);"), Span(f"{live_pct}% ({int(total_deals*live_pct/100)} deals)", style="font-size:.72rem;"), cls="sidebar-kv"),
+                        Div(Span("Profit Sharing", style="color:var(--ink-dim);"), Span(f"{profit_pct}% ({int(total_deals*profit_pct/100)} deals)", style="font-size:.72rem;"), cls="sidebar-kv"),
+                        Div(Span("Completed", style="color:var(--ink-dim);"), Span(f"{completed_pct}% ({int(total_deals*completed_pct/100)} deals)", style="font-size:.72rem;"), cls="sidebar-kv"),
+                    ),
+                    cls="chart-card", style="min-width:240px;",
+                ),
+                Div(
+                    Div("Term", cls="kpi-label"),
+                    Div(f"{term_avg:.0f} months", style="font-size:1.4rem;font-weight:700;"),
+                    Div(f"↑ 3% (3 months)", style="font-size:.72rem;color:#16a34a;margin-bottom:.5rem;"),
+                    Div("from last year", style="font-size:.66rem;color:var(--ink-dim);margin-bottom:.5rem;"),
+                    Div(id="chart-ct-term", style="height:180px;"),
+                    cls="chart-card", style="flex:2;",
+                ),
+                cls="charts-row", style="align-items:stretch;",
+            ),
+            Div(
+                Div(
+                    Div("IRR", cls="kpi-label"),
+                    Div(f"{irr_avg:.1f}%", style="font-size:1.4rem;font-weight:700;"),
+                    Div(f"↑ 3%", style="font-size:.72rem;color:#16a34a;display:inline;"),
+                    Span(" from last deal", style="font-size:.66rem;color:var(--ink-dim);"),
+                    Div(id="chart-ct-irr", style="height:180px;margin-top:.5rem;"),
+                    cls="chart-card",
+                ),
+                cls="charts-row",
+            ),
+            Div(
+                Div(
+                    Div("Fee", cls="kpi-label"),
+                    Div(f"${total_fee:,.0f}", style="font-size:1.4rem;font-weight:700;"),
+                    Div(id="chart-ct-fee", style="height:180px;margin-top:.5rem;"),
+                    cls="chart-card",
+                ),
+                Div(
+                    Div("Interest (Collected)", cls="kpi-label"),
+                    Div(f"${total_interest:,.0f}", style="font-size:1.4rem;font-weight:700;"),
+                    Div(id="chart-ct-interest", style="height:180px;margin-top:.5rem;"),
+                    cls="chart-card",
+                ),
+                cls="charts-row",
+            ),
+            Script(f"""
+            (function() {{
+                var cfg = {{displayModeBar:false,responsive:true}};
+                var lo = {{margin:{{t:10,r:15,b:30,l:40}},paper_bgcolor:'transparent',plot_bgcolor:'transparent',
+                           font:{{size:9,color:'#999'}},xaxis:{{showgrid:false}},yaxis:{{showgrid:true,gridcolor:'#E5E5E5'}},
+                           showlegend:true,legend:{{font:{{size:8}},orientation:'h',y:1.12}}}};
+                var deals = {deals_labels};
+
+                // Term chart
+                Plotly.newPlot('chart-ct-term',
+                    [{{x:deals,y:{term_per_deal},type:'scatter',name:'Per Deal',mode:'lines+markers',
+                       line:{{color:'#0052CC',width:2}},marker:{{size:6}}}},
+                     {{x:deals,y:{[round(w,1) for w in weighted_avg]},type:'scatter',name:'Weighted Average',
+                       mode:'lines+markers',line:{{color:'#16A34A',width:2,dash:'dot'}},marker:{{size:5,symbol:'diamond'}}}}],
+                    lo,cfg);
+
+                // IRR chart
+                var irrLo = {{...lo,shapes:[
+                    {{type:'line',y0:{irr_max:.0f},y1:{irr_max:.0f},x0:0,x1:6,xref:'x',yref:'y',line:{{color:'#dc2626',width:1,dash:'dash'}}}},
+                    {{type:'line',y0:5,y1:5,x0:0,x1:6,xref:'x',yref:'y',line:{{color:'#dc2626',width:1,dash:'dash'}}}}
+                ]}};
+                Plotly.newPlot('chart-ct-irr',
+                    [{{x:deals,y:{irr_per_deal},type:'scatter',mode:'lines',line:{{color:'#0052CC',width:2}}}}],
+                    irrLo,cfg);
+
+                // Fee chart
+                Plotly.newPlot('chart-ct-fee',
+                    [{{x:deals,y:{ep_fees},type:'bar',name:'EP fees',marker:{{color:'#0052CC'}}}},
+                     {{x:deals,y:{coprod_fees},type:'bar',name:'Co-producer/producer fees',marker:{{color:'#3B82F6'}}}},
+                     {{x:deals,y:{other_fees},type:'bar',name:'Other fees',marker:{{color:'#93C5FD'}}}}],
+                    {{...lo,barmode:'group'}},cfg);
+
+                // Interest chart
+                Plotly.newPlot('chart-ct-interest',
+                    [{{x:deals,y:{init_interest},type:'bar',name:'Initial Interest',marker:{{color:'#0052CC'}}}},
+                     {{x:deals,y:{special_interest},type:'bar',name:'Special Interest',marker:{{color:'#3B82F6'}}}},
+                     {{x:deals,y:{post_mat_interest},type:'bar',name:'Post-Maturity Interest',marker:{{color:'#93C5FD'}}}}],
+                    {{...lo,barmode:'group'}},cfg);
+            }})();
+            """),
+        )
+
+    return Div(P("Unknown tab."))
 
 
 # Product 1 sub-module routes registered below via register_routes()
@@ -990,12 +1864,10 @@ def index(session, new: str = "", thread: str = ""):
         from modules.landing import landing_page
         return landing_page()
 
-    # New chat: generate fresh thread
     if new == "1":
         thread_id = str(_uuid.uuid4())
         session["thread_id"] = thread_id
     elif thread:
-        # Resume specific thread
         thread_id = thread
         session["thread_id"] = thread_id
     else:
@@ -1020,29 +1892,22 @@ def index(session, new: str = "", thread: str = ""):
                 Div(
                     Div(
                         Button("☰", cls="mobile-menu-btn", onclick="toggleLeftPane()"),
-                        Span("Monika", cls="chat-header-title", id="center-title"),
-                        Span("·", cls="chat-header-dot"),
-                        Span("AI Chat", cls="chat-header-agent"),
-                        cls="chat-header-left",
+                        Span("Home", cls="page-title", id="center-title"),
+                        cls="page-header-left",
                     ),
                     Div(
-                        Button("Copy chat", id="copy-chat-btn", cls="chat-action-btn",
-                               onclick="copyChat()"),
-                        Button("Share", id="share-chat-btn", cls="chat-action-btn",
-                               onclick="shareChat()"),
-                        Button("Canvas", id="artifact-btn", cls="artifact-toggle-btn",
-                               onclick="toggleArtifactPane()"),
-                        cls="chat-header-actions",
+                        Input(type="text", placeholder="Search...", cls="header-search"),
+                        cls="page-header-right",
                     ),
-                    cls="chat-header",
+                    cls="page-header",
                 ),
-                Div(id="center-content", cls="module-content", style="display:none;overflow-y:auto;flex:1;"),
-                Div(agui.chat(thread_id), cls="center-chat", id="center-chat"),
-                _sample_cards(),
+                Div(id="center-content", cls="module-content",
+                    hx_get="/module/home", hx_trigger="load", hx_swap="innerHTML",
+                    style="overflow-y:auto;flex:1;"),
+                Div(agui.chat(thread_id), cls="center-chat", id="center-chat", style="display:none;"),
                 cls="center-pane",
             ),
-            _right_pane(),
-            cls="app-layout pane-closed",
+            cls="app-layout",
         ),
         Script(src="/static/chat.js"),
     )
