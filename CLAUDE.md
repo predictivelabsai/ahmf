@@ -57,6 +57,8 @@ The main application file contains most routes and the agent setup. Major sectio
 
 Each module in `modules/` exports `register_routes(rt)` to mount its routes on the FastHTML router. Some modules also export tool functions used by the LangGraph agent (dual role: page routes + agent tools). The landing page is an exception — imported inline in the index route.
 
+**Route ordering**: Starlette matches routes top-to-bottom. Static routes like `/module/deal/new` must be registered BEFORE parameterized routes like `/module/deal/{deal_id}`, otherwise `"new"` gets captured as a UUID and fails.
+
 ### AG-UI chat engine (utils/agui/)
 
 Vendored chat framework with three classes: `UI` (renders messages/input), `AGUIThread` (per-thread state, handles message flow and AI streaming), `AGUISetup` (thread container, registers WebSocket routes). WebSocket at `/agui/ws/{thread_id}` handles real-time streaming. Events flow as: user message → command interceptor → LangGraph `astream_events(v2)` → token-by-token broadcast to subscribers → marked.js renders markdown client-side.
@@ -71,7 +73,15 @@ Dual auth: Clerk SSO (if `CLERK_SECRET_KEY` configured) or local email/password 
 
 ### Frontend
 
-Custom CSS in `static/app.css` (no framework). 3-pane grid: left nav (240px) | center (1fr) | right copilot (360px). JS in `static/chat.js` handles module switching (`loadModule()`), right pane toggling, CSV export, table sorting. Charts use Plotly 2.32.0. Markdown rendered by marked.js. Clerk SDK loaded conditionally from CDN.
+Custom CSS in `static/app.css` with Pico CSS loaded by FastHTML. 3-pane grid: left nav (240px) | center (1fr) | right copilot (360px). JS in `static/chat.js` handles module switching (`loadModule()`), right pane toggling, CSV export, table sorting. Charts use Plotly 2.32.0. Markdown rendered by marked.js. Clerk SDK loaded conditionally from CDN.
+
+**Pico CSS pitfall**: FastHTML auto-includes Pico CSS (`@picocss/pico`) which aggressively styles base elements (`button`, `input`, `select`, `table`). When adding custom-styled buttons or inputs, use scoped selectors (e.g. `.parent-class button.my-btn`) and explicitly override `width`, `height`, `margin`, `padding`, `background`, and `--pico-background-color` to prevent Pico defaults from taking over.
+
+**Static file caching**: Browsers cache `/static/*.css` and `/static/*.js` aggressively. Always use cache-busting version params (`href="/static/app.css?v=N"`) and bump the version when changing static files. All CSS/JS link tags are in `app.py` — search for `app.css?v=` and `chat.js?v=` to update.
+
+### AI Copilot (right pane)
+
+The copilot uses a welcome-state pattern: on load and module switch, `GET /api/copilot/welcome/{module_id}` returns a system message with clickable command chips. Chips call `insertCopilotCmd(text)` (fills input, no auto-submit). `GET /api/copilot/hints/{module_id}` returns a hint line below the input. The `clearCopilot()` JS function clears messages and reloads both. When calling `htmx.ajax()` from JS, always pass `source: element` so HTMX sends the `HX-Request` header — without it, FastHTML returns a full HTML page instead of a fragment.
 
 ## Key Directories
 
