@@ -493,7 +493,7 @@ def _right_pane():
                         Textarea(placeholder="Ask about this data...", id="copilot-input",
                                  name="msg", rows="2", cls="copilot-textarea"),
                         Hidden(name="module_id", id="copilot-module-id", value="home"),
-                        Button("→", type="submit", cls="copilot-send-btn"),
+                        Button("Ask →", type="submit", cls="copilot-send-btn"),
                         cls="copilot-input-row",
                     ),
                     id="copilot-form",

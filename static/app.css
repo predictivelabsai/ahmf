@@ -507,8 +507,7 @@ html, body { height: 100%; background: var(--bg); color: var(--ink); overflow: h
     flex-wrap: wrap;
     gap: .35rem;
     padding: .35rem 0;
-    max-height: 120px;
-    overflow-y: auto;
+    max-height: none;
 }
 .copilot-shortcut-btn {
     background: var(--blue-light);
@@ -534,34 +533,34 @@ html, body { height: 100%; background: var(--bg); color: var(--ink); overflow: h
 .copilot-textarea {
     flex: 1 1 0%;
     min-width: 0;
-    border: 1px solid var(--line);
+    border: 2px solid var(--ink-dim);
     border-radius: 8px;
     padding: .5rem;
-    font-size: .8rem;
+    font-size: .85rem;
     font-family: inherit;
     color: var(--ink);
-    background: var(--bg-elev);
+    background: #fff;
     resize: none;
-    min-height: 36px;
+    min-height: 40px;
     max-height: 80px;
 }
+.copilot-textarea::placeholder { color: #999; }
 .copilot-textarea:focus { outline: none; border-color: var(--blue); }
 .copilot-send-btn {
     background: var(--blue);
     color: white;
     border: none;
     border-radius: 8px;
-    width: 36px;
-    min-width: 36px;
-    max-width: 36px;
-    height: 36px;
-    font-size: 1rem;
+    padding: 0 1rem;
+    height: 40px;
+    font-size: .85rem;
+    font-weight: 600;
     cursor: pointer;
     flex-shrink: 0;
-    flex-grow: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    white-space: nowrap;
 }
 .copilot-send-btn:hover { background: var(--blue-deep); }
 .copilot-thinking { font-size: .72rem; color: var(--ink-dim); padding: .35rem; }
