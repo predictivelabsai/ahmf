@@ -164,6 +164,47 @@ def decode_jwt_token(token: str) -> Optional[Dict]:
 # Helpers
 # ---------------------------------------------------------------------------
 
+def create_password_reset_token(user_id: str) -> str:
+    """Create a password reset token (expires in 1 hour)."""
+    import jwt
+    secret = os.getenv("JWT_SECRET")
+    if not secret:
+        raise RuntimeError("JWT_SECRET not set in .env")
+    payload = {
+        "user_id": str(user_id),
+        "purpose": "password_reset",
+        "exp": datetime.now(timezone.utc) + timedelta(hours=1),
+        "iat": datetime.now(timezone.utc),
+    }
+    return jwt.encode(payload, secret, algorithm="HS256")
+
+
+def reset_password_with_token(token: str, new_password: str) -> bool:
+    """Verify a reset token and update the user's password. Returns True on success."""
+    import jwt
+    secret = os.getenv("JWT_SECRET")
+    if not secret:
+        return False
+    try:
+        payload = jwt.decode(token, secret, algorithms=["HS256"])
+    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
+        return False
+    if payload.get("purpose") != "password_reset":
+        return False
+    user_id = payload.get("user_id")
+    if not user_id:
+        return False
+    pw_hash = hash_password(new_password)
+    from sqlalchemy import text
+    pool = _get_pool()
+    with pool.get_session() as session:
+        result = session.execute(
+            text("UPDATE ahmf.users SET password_hash = :pw_hash, updated_at = NOW() WHERE user_id = :user_id"),
+            {"pw_hash": pw_hash, "user_id": user_id},
+        )
+        return result.rowcount > 0
+
+
 def _row_to_user(row, keys) -> Dict:
     """Convert a DB row to a user dict."""
     d = dict(zip(keys, row))

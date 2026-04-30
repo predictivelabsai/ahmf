@@ -333,13 +333,27 @@ async def _command_interceptor(msg: str, session) -> str | None:
 # FastHTML App
 # ---------------------------------------------------------------------------
 
+from utils.clerk import is_clerk_enabled, get_publishable_key, get_frontend_api
+
+_hdrs = [
+    Script(src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"),
+    Script(src="https://cdn.plot.ly/plotly-2.32.0.min.js"),
+]
+
+if is_clerk_enabled():
+    _fapi = get_frontend_api()
+    _pk = get_publishable_key()
+    _hdrs.extend([
+        Script(src=f"https://{_fapi}/npm/@clerk/ui@1/dist/ui.browser.js",
+               crossorigin="anonymous", defer=True),
+        Script(src=f"https://{_fapi}/npm/@clerk/clerk-js@6/dist/clerk.browser.js",
+               crossorigin="anonymous", defer=True, data_clerk_publishable_key=_pk),
+    ])
+
 app, rt = fast_app(
     exts="ws",
     secret_key=os.getenv("JWT_SECRET", "ahmf-dev-secret"),
-    hdrs=(
-        Script(src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"),
-        Script(src="https://cdn.plot.ly/plotly-2.32.0.min.js"),
-    ),
+    hdrs=tuple(_hdrs),
 )
 
 from utils.agui import setup_agui, get_chat_styles, StreamingCommand, list_conversations
@@ -541,13 +555,82 @@ async def copilot_query_endpoint(msg: str, module_id: str = "home", session=None
 
 
 # ---------------------------------------------------------------------------
+# Clerk session bridge
+# ---------------------------------------------------------------------------
+
+def _check_clerk_session(request, session):
+    """Check for Clerk __session cookie and sync to FastHTML session."""
+    if not is_clerk_enabled():
+        return session.get("user_id")
+    if session.get("user_id"):
+        return session.get("user_id")
+
+    token = request.cookies.get("__session") or ""
+    if not token:
+        auth_header = request.headers.get("authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:]
+    if not token:
+        return None
+
+    from utils.clerk import verify_clerk_token, get_clerk_user
+    payload = verify_clerk_token(token)
+    if not payload:
+        return None
+
+    clerk_user_id = payload.get("sub")
+    if not clerk_user_id:
+        return None
+
+    clerk_user = get_clerk_user(clerk_user_id)
+    if not clerk_user or not clerk_user.get("email"):
+        return None
+
+    from utils.auth import get_user_by_email, create_user
+    email = clerk_user["email"]
+    existing = get_user_by_email(email)
+    if not existing:
+        existing = create_user(email, password="clerk-managed",
+                               display_name=clerk_user["display_name"])
+    if not existing:
+        return None
+
+    session["user_id"] = existing["user_id"]
+    session["email"] = existing["email"]
+    session["display_name"] = existing.get("display_name", "")
+    return session["user_id"]
+
+
+# ---------------------------------------------------------------------------
 # Auth Routes
 # ---------------------------------------------------------------------------
 
 @rt("/login", methods=["GET"])
-def login_page(session):
+def login_page(request, session):
     if session.get("user_id"):
         return RedirectResponse("/", status_code=303)
+    if is_clerk_enabled():
+        _check_clerk_session(request, session)
+        if session.get("user_id"):
+            return RedirectResponse("/", status_code=303)
+        return Titled(
+            "Monika — Sign In",
+            Link(rel="stylesheet", href="/static/app.css"),
+            Div(
+                Div(id="clerk-signin", style="min-height:400px;display:flex;justify-content:center;"),
+                Script("""
+                    window.addEventListener('load', async function() {
+                        await Clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor } });
+                        if (Clerk.user) { window.location.href = '/'; return; }
+                        Clerk.mountSignIn(document.getElementById('clerk-signin'), {
+                            afterSignInUrl: '/',
+                            afterSignUpUrl: '/',
+                        });
+                    });
+                """),
+                cls="auth-container",
+            ),
+        )
     return Titled(
         "Monika — Login",
         Link(rel="stylesheet", href="/static/app.css"),
@@ -557,6 +640,10 @@ def login_page(session):
                 Input(type="email", name="email", placeholder="Email", required=True),
                 Input(type="password", name="password", placeholder="Password", required=True),
                 Button("Sign In", type="submit", cls="auth-btn"),
+                Div(
+                    A("Forgot password?", href="/forgot-password"),
+                    style="text-align:right;margin-top:0.25rem;",
+                ),
                 Div(A("Create account", href="/register"), cls="auth-link"),
                 cls="auth-form",
                 method="post",
@@ -598,9 +685,31 @@ def login_submit(email: str, password: str, session):
 
 
 @rt("/register", methods=["GET"])
-def register_page(session):
+def register_page(request, session):
     if session.get("user_id"):
         return RedirectResponse("/", status_code=303)
+    if is_clerk_enabled():
+        _check_clerk_session(request, session)
+        if session.get("user_id"):
+            return RedirectResponse("/", status_code=303)
+        return Titled(
+            "Monika — Create Account",
+            Link(rel="stylesheet", href="/static/app.css"),
+            Div(
+                Div(id="clerk-signup", style="min-height:400px;display:flex;justify-content:center;"),
+                Script("""
+                    window.addEventListener('load', async function() {
+                        await Clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor } });
+                        if (Clerk.user) { window.location.href = '/'; return; }
+                        Clerk.mountSignUp(document.getElementById('clerk-signup'), {
+                            afterSignInUrl: '/',
+                            afterSignUpUrl: '/',
+                        });
+                    });
+                """),
+                cls="auth-container",
+            ),
+        )
     return Titled(
         "Monika — Register",
         Link(rel="stylesheet", href="/static/app.css"),
@@ -653,7 +762,129 @@ def register_submit(email: str, password: str, display_name: str, session):
 @rt("/logout")
 def logout(session):
     session.clear()
+    if is_clerk_enabled():
+        return Titled(
+            "Logging out…",
+            Link(rel="stylesheet", href="/static/app.css"),
+            Script("""
+                window.addEventListener('load', async function() {
+                    await Clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor } });
+                    await Clerk.signOut();
+                    window.location.href = '/login';
+                });
+            """),
+        )
     return RedirectResponse("/login", status_code=303)
+
+
+@rt("/forgot-password", methods=["GET"])
+def forgot_password_page():
+    if is_clerk_enabled():
+        return RedirectResponse("/login", status_code=303)
+    return Titled(
+        "Monika — Reset Password",
+        Link(rel="stylesheet", href="/static/app.css"),
+        Div(
+            H2("Reset Password", style="text-align:center; margin-bottom:1.5rem;"),
+            Form(
+                Input(type="email", name="email", placeholder="Email", required=True),
+                Button("Send Reset Link", type="submit", cls="auth-btn"),
+                Div(A("Back to sign in", href="/login"), cls="auth-link"),
+                cls="auth-form",
+                method="post",
+                action="/forgot-password",
+            ),
+            cls="auth-container",
+        ),
+    )
+
+
+@rt("/forgot-password", methods=["POST"])
+def forgot_password_submit(email: str):
+    from utils.auth import get_user_by_email, create_password_reset_token
+    user = get_user_by_email(email)
+    msg = "If an account exists with that email, a reset link has been generated."
+    if user:
+        token = create_password_reset_token(user["user_id"])
+        logger.info(f"Password reset token for {email}: /reset-password?token={token}")
+    return Titled(
+        "Monika — Reset Password",
+        Link(rel="stylesheet", href="/static/app.css"),
+        Div(
+            H2("Check Your Email", style="text-align:center; margin-bottom:1.5rem;"),
+            P(msg, style="text-align:center;font-size:0.85rem;color:#64748b;max-width:320px;margin:0 auto 1rem;"),
+            Div(A("Back to sign in", href="/login"), cls="auth-link"),
+            cls="auth-container",
+        ),
+    )
+
+
+@rt("/reset-password", methods=["GET"])
+def reset_password_page(token: str = ""):
+    if not token:
+        return RedirectResponse("/login", status_code=303)
+    return Titled(
+        "Monika — New Password",
+        Link(rel="stylesheet", href="/static/app.css"),
+        Div(
+            H2("Set New Password", style="text-align:center; margin-bottom:1.5rem;"),
+            Form(
+                Hidden(name="token", value=token),
+                Input(type="password", name="password", placeholder="New password", required=True, minlength="6"),
+                Input(type="password", name="password_confirm", placeholder="Confirm password", required=True, minlength="6"),
+                Button("Reset Password", type="submit", cls="auth-btn"),
+                cls="auth-form",
+                method="post",
+                action="/reset-password",
+            ),
+            cls="auth-container",
+        ),
+    )
+
+
+@rt("/reset-password", methods=["POST"])
+def reset_password_submit(token: str, password: str, password_confirm: str):
+    if password != password_confirm:
+        return Titled(
+            "Monika — New Password",
+            Link(rel="stylesheet", href="/static/app.css"),
+            Div(
+                H2("Set New Password", style="text-align:center; margin-bottom:1.5rem;"),
+                Form(
+                    Hidden(name="token", value=token),
+                    Input(type="password", name="password", placeholder="New password", required=True, minlength="6"),
+                    Input(type="password", name="password_confirm", placeholder="Confirm password", required=True, minlength="6"),
+                    Button("Reset Password", type="submit", cls="auth-btn"),
+                    cls="auth-form",
+                    method="post",
+                    action="/reset-password",
+                ),
+                Div("Passwords do not match.", style="color:#dc2626;text-align:center;font-size:0.8rem;margin-top:0.5rem;"),
+                cls="auth-container",
+            ),
+        )
+    from utils.auth import reset_password_with_token
+    if reset_password_with_token(token, password):
+        return Titled(
+            "Monika — Password Reset",
+            Link(rel="stylesheet", href="/static/app.css"),
+            Div(
+                H2("Password Reset", style="text-align:center; margin-bottom:1.5rem;"),
+                P("Your password has been updated.", style="text-align:center;font-size:0.85rem;color:#64748b;"),
+                Div(A("Sign in", href="/login"), cls="auth-link"),
+                cls="auth-container",
+            ),
+        )
+    return Titled(
+        "Monika — Error",
+        Link(rel="stylesheet", href="/static/app.css"),
+        Div(
+            H2("Invalid or Expired Link", style="text-align:center; margin-bottom:1.5rem;"),
+            P("This reset link is invalid or has expired.", style="text-align:center;font-size:0.85rem;color:#dc2626;"),
+            Div(A("Request a new link", href="/forgot-password"), cls="auth-link"),
+            cls="auth-container",
+        ),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1948,7 +2179,8 @@ scoring_routes(rt)
 # ---------------------------------------------------------------------------
 
 @rt("/")
-def index(session, new: str = "", thread: str = ""):
+def index(request, session, new: str = "", thread: str = ""):
+    _check_clerk_session(request, session)
     if not session.get("user_id"):
         from modules.landing import landing_page
         return landing_page()
