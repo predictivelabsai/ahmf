@@ -463,27 +463,28 @@ html, body { height: 100%; background: var(--bg); color: var(--ink); overflow: h
     font-size: .82rem;
 }
 
-/* Copilot messages */
+/* ── Copilot messages ── */
 .copilot-messages {
     flex: 1;
     overflow-y: auto;
-    padding: .75rem;
+    padding: 12px 14px;
     display: flex;
     flex-direction: column;
-    gap: .5rem;
+    gap: 10px;
 }
 .copilot-msg {
-    padding: .6rem .85rem;
+    padding: 8px 12px;
     border-radius: 10px;
-    font-size: .8rem;
-    line-height: 1.5;
+    font-size: 13px;
+    line-height: 1.45;
     max-width: 95%;
     word-wrap: break-word;
-    color: var(--ink);
+    white-space: pre-wrap;
 }
-.copilot-msg table { font-size: .72rem; border-collapse: collapse; width: 100%; margin: .5rem 0; }
-.copilot-msg th, .copilot-msg td { padding: .25rem .4rem; border: 1px solid var(--line); text-align: left; }
+.copilot-msg table { font-size: 12px; border-collapse: collapse; width: 100%; margin: 6px 0; }
+.copilot-msg th, .copilot-msg td { padding: 3px 6px; border: 1px solid var(--line); text-align: left; }
 .copilot-msg th { background: var(--bg-raise); font-weight: 600; }
+.copilot-msg code { background: rgba(0,0,0,.06); padding: 1px 4px; border-radius: 3px; font-size: 12px; }
 .copilot-user {
     background: var(--blue);
     color: white;
@@ -496,74 +497,137 @@ html, body { height: 100%; background: var(--bg); color: var(--ink); overflow: h
     align-self: flex-start;
     border-bottom-left-radius: 3px;
 }
+.copilot-system {
+    background: #fef3c7;
+    color: #92400e;
+    align-self: stretch;
+    font-size: 13px;
+    line-height: 1.5;
+    max-width: 100%;
+    padding: 10px 14px;
+    border-radius: 10px;
+}
 
-/* Copilot footer */
-.copilot-footer {
-    border-top: 1px solid var(--line);
-    padding: .5rem;
+/* ── Header actions ── */
+.right-header-actions { display: flex; align-items: center; gap: 6px; }
+.right-header button.copilot-new-btn {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    border: 1px solid var(--line);
+    background: var(--bg-elev);
+    color: var(--ink-muted);
+    font-weight: 500;
+    width: auto;
+    height: auto;
+    margin: 0;
+    --pico-background-color: var(--bg-elev);
 }
-.copilot-shortcuts {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .35rem;
-    padding: .35rem 0;
-    max-height: none;
+.right-header button.copilot-new-btn:hover { background: var(--bg-raise); color: var(--ink); }
+
+/* ── Command chips ── */
+.copilot-chip {
+    display: inline-block;
+    padding: 3px 10px;
+    margin: 3px 2px;
+    font-size: 11px;
+    background: var(--bg-raise);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    cursor: pointer;
+    color: var(--ink-muted);
+    transition: all .15s;
 }
-.copilot-shortcut-btn {
+.copilot-chip:hover {
     background: var(--blue-light);
     color: var(--blue);
-    border: 1px solid var(--blue)20;
-    border-radius: 14px;
-    padding: .3rem .7rem;
-    font-size: .7rem;
-    cursor: pointer;
-    transition: all .15s;
-    white-space: nowrap;
+    border-color: var(--blue);
 }
-.copilot-shortcut-btn:hover {
-    background: var(--blue);
-    color: white;
+
+/* ── Input area (scoped to override Pico CSS) ── */
+.copilot-input-area {
+    border-top: 1px solid var(--line);
+    padding: 10px 12px;
+    background: var(--bg-elev);
 }
-.copilot-input-row {
+.copilot-input-area .copilot-input-wrap {
+    position: relative;
     display: flex;
-    gap: .35rem;
-    align-items: flex-end;
-    margin-top: .35rem;
+    align-items: center;
 }
-.copilot-textarea {
-    flex: 1 1 0%;
-    min-width: 0;
-    border: 2px solid var(--ink-dim);
+.copilot-input-area input.copilot-input {
+    width: 100%;
+    padding: 9px 36px 9px 12px;
+    border: 1px solid var(--line);
     border-radius: 8px;
-    padding: .5rem;
-    font-size: .85rem;
+    font-size: 13px;
     font-family: inherit;
     color: var(--ink);
     background: #fff;
-    resize: none;
-    min-height: 40px;
-    max-height: 80px;
+    outline: none;
+    margin: 0;
+    height: auto;
+    box-shadow: none;
+    --pico-background-color: #fff;
+    --pico-border-color: var(--line);
 }
-.copilot-textarea::placeholder { color: #999; }
-.copilot-textarea:focus { outline: none; border-color: var(--blue); }
-.copilot-send-btn {
-    background: var(--blue);
-    color: white;
+.copilot-input-area input.copilot-input::placeholder { color: var(--ink-dim); }
+.copilot-input-area input.copilot-input:focus { border-color: var(--blue); box-shadow: none; }
+.copilot-input-area button.copilot-send-icon {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
     border: none;
-    border-radius: 8px;
-    padding: 0 1rem;
-    height: 40px;
-    font-size: .85rem;
-    font-weight: 600;
     cursor: pointer;
-    flex-shrink: 0;
-    display: inline-flex;
+    color: var(--ink-dim);
+    font-size: 14px;
+    padding: 2px;
+    margin: 0;
+    width: auto;
+    height: auto;
+    display: flex;
     align-items: center;
-    justify-content: center;
-    white-space: nowrap;
+    --pico-background-color: transparent;
 }
-.copilot-send-btn:hover { background: var(--blue-deep); }
-.copilot-thinking { font-size: .72rem; color: var(--ink-dim); padding: .35rem; }
+.copilot-input-area button.copilot-send-icon:hover { color: var(--blue); background: transparent; }
+.copilot-hint {
+    font-size: 11px;
+    color: var(--ink-dim);
+    margin-top: 6px;
+    line-height: 1.6;
+}
+.copilot-hint code {
+    background: var(--bg-raise);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 11px;
+}
+
+/* ── Thinking dots ── */
+.copilot-thinking-bubble {
+    background: var(--bg-raise);
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    align-self: flex-start;
+    color: var(--ink-dim);
+}
+.copilot-dots span {
+    animation: copilotDot 1.4s infinite;
+    display: inline-block;
+    font-size: 18px;
+    line-height: 1;
+}
+.copilot-dots span:nth-child(2) { animation-delay: .2s; }
+.copilot-dots span:nth-child(3) { animation-delay: .4s; }
+@keyframes copilotDot {
+    0%, 80%, 100% { opacity: .2; }
+    40% { opacity: 1; }
+}
+
 .htmx-indicator { display: none; }
 .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { display: block; }
 

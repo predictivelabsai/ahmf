@@ -78,22 +78,32 @@
         const modField = document.getElementById("copilot-module-id");
         if (modField) modField.value = mid;
 
-        // Load shortcuts for this module
-        const shortcuts = document.getElementById("copilot-shortcuts");
-        if (shortcuts) {
-            htmx.ajax("GET", "/api/copilot/shortcuts/" + mid, {
-                target: "#copilot-shortcuts", swap: "innerHTML"
-            });
-        }
+        // Reset copilot for this module
+        clearCopilot();
     };
 
-    // ── Copilot query helper ────────────────────────────────────
-    window.sendCopilotQuery = (query) => {
-        const ta = document.getElementById("copilot-input");
-        const form = document.getElementById("copilot-form");
-        if (ta && form) {
-            ta.value = query;
-            form.requestSubmit();
+    // ── Copilot helpers ───────────────────────────────────────────
+    window.insertCopilotCmd = (text) => {
+        const el = document.getElementById("copilot-input");
+        if (el) { el.value = text; el.focus(); }
+    };
+
+    window.clearCopilot = () => {
+        const msgs = document.getElementById("copilot-messages");
+        const mid = window._currentModule?.moduleId || "home";
+        if (msgs) {
+            msgs.innerHTML = "";
+            htmx.ajax("GET", "/api/copilot/welcome/" + mid, {
+                target: "#copilot-messages", swap: "innerHTML",
+                source: msgs
+            });
+        }
+        const hintEl = document.getElementById("copilot-hint");
+        if (hintEl) {
+            htmx.ajax("GET", "/api/copilot/hints/" + mid, {
+                target: "#copilot-hint", swap: "innerHTML",
+                source: hintEl
+            });
         }
     };
 
@@ -169,6 +179,14 @@
         const cm = document.getElementById("copilot-messages");
         if (cm) cm.scrollTop = cm.scrollHeight;
     }).observe(document.body, { childList: true, subtree: true });
+
+    // Remove welcome state on first copilot submission
+    document.body.addEventListener("htmx:beforeRequest", (e) => {
+        if (e.detail.elt && e.detail.elt.id === "copilot-form") {
+            const welcome = document.getElementById("copilot-welcome");
+            if (welcome) welcome.remove();
+        }
+    });
 
     document.querySelectorAll(".chat-message-content, .module-content").forEach(b => enhanceTables(b));
 

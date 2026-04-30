@@ -471,7 +471,12 @@ def _right_pane():
     return Div(
         Div(
             Span("AI Copilot", id="right-pane-title", cls="right-pane-title"),
-            Button("✕", cls="right-close-btn", onclick="toggleRightPane()"),
+            Div(
+                Button("New", cls="copilot-new-btn", onclick="clearCopilot()",
+                       title="Start new conversation"),
+                Button("✕", cls="right-close-btn", onclick="toggleRightPane()"),
+                cls="right-header-actions",
+            ),
             cls="right-header",
         ),
         # Mode A: Documents — shown when main AI chat is active
@@ -484,26 +489,39 @@ def _right_pane():
         ),
         # Mode B: AI Copilot — shown when a module page is active
         Div(
-            Div(id="copilot-messages", cls="copilot-messages"),
             Div(
-                Div(id="copilot-shortcuts", cls="copilot-shortcuts",
-                    hx_get="/api/copilot/shortcuts/home", hx_trigger="load", hx_swap="innerHTML"),
+                Div(id="copilot-welcome",
+                    hx_get="/api/copilot/welcome/home",
+                    hx_trigger="load", hx_swap="innerHTML"),
+                id="copilot-messages", cls="copilot-messages",
+            ),
+            Div(
+                Div(NotStr("<span class='copilot-dots'><span>.</span><span>.</span><span>.</span></span>"),
+                    cls="copilot-thinking-bubble"),
+                id="copilot-thinking", cls="htmx-indicator",
+                style="padding: 0 14px 8px;",
+            ),
+            Div(
                 Form(
                     Div(
-                        Textarea(placeholder="Ask about this data...", id="copilot-input",
-                                 name="msg", rows="2", cls="copilot-textarea"),
+                        Input(type="text", name="msg", id="copilot-input",
+                              placeholder="Ask about this data...",
+                              autocomplete="off", cls="copilot-input"),
                         Hidden(name="module_id", id="copilot-module-id", value="home"),
-                        Button("Ask →", type="submit", cls="copilot-send-btn"),
-                        cls="copilot-input-row",
+                        Button(NotStr("&#10148;"), type="submit",
+                               cls="copilot-send-icon", title="Send"),
+                        cls="copilot-input-wrap",
                     ),
                     id="copilot-form",
                     hx_post="/api/copilot/query",
                     hx_target="#copilot-messages",
                     hx_swap="beforeend",
-                    hx_indicator="#copilot-spinner",
+                    hx_indicator="#copilot-thinking",
                 ),
-                Div(Span("Thinking...", cls="copilot-thinking"), id="copilot-spinner", cls="htmx-indicator"),
-                cls="copilot-footer",
+                Div(id="copilot-hint", cls="copilot-hint",
+                    hx_get="/api/copilot/hints/home",
+                    hx_trigger="load", hx_swap="innerHTML"),
+                cls="copilot-input-area",
             ),
             id="right-copilot",
             cls="right-body",
@@ -519,17 +537,29 @@ def _right_pane():
 # Copilot API Routes
 # ---------------------------------------------------------------------------
 
-@rt("/api/copilot/shortcuts/{module_id}")
-def copilot_shortcuts(module_id: str):
+@rt("/api/copilot/welcome/{module_id}")
+def copilot_welcome(module_id: str):
     from agents.copilot import COPILOT_SHORTCUTS
     shortcuts = COPILOT_SHORTCUTS.get(module_id, COPILOT_SHORTCUTS.get("home", []))
-    buttons = []
+    chips = []
     for label, desc in shortcuts:
-        buttons.append(
-            Button(label, cls="copilot-shortcut-btn", title=desc,
-                   onclick=f"sendCopilotQuery('{label.replace(chr(39), '')}')")
-        )
-    return Div(*buttons, id="copilot-shortcuts")
+        safe = label.replace("'", "\\'")
+        chips.append(
+            Span(label, cls="copilot-chip", title=desc,
+                 onclick=f"insertCopilotCmd('{safe}')"))
+    return Div(
+        Div("Hi! I can query your data. Ask a question or try:", Br(), *chips,
+            cls="copilot-msg copilot-system"),
+        id="copilot-welcome",
+    )
+
+
+@rt("/api/copilot/hints/{module_id}")
+def copilot_hints(module_id: str):
+    from agents.copilot import COPILOT_SHORTCUTS
+    shortcuts = COPILOT_SHORTCUTS.get(module_id, COPILOT_SHORTCUTS.get("home", []))
+    codes = " ".join(f"<code>{label}</code>" for label, _ in shortcuts[:4])
+    return NotStr(f"Try: {codes}")
 
 
 @rt("/api/copilot/query", methods=["POST"])
@@ -550,9 +580,12 @@ async def copilot_query_endpoint(msg: str, module_id: str = "home", session=None
         Div(NotStr(result), cls="copilot-msg copilot-assistant"),
     )
 
-    clear_input = Script("document.getElementById('copilot-input').value='';")
+    clear_and_scroll = Script(
+        "document.getElementById('copilot-input').value='';"
+        "var cm=document.getElementById('copilot-messages');if(cm)cm.scrollTop=cm.scrollHeight;"
+    )
 
-    return Div(user_bubble, asst_bubble, clear_input)
+    return Div(user_bubble, asst_bubble, clear_and_scroll)
 
 
 # ---------------------------------------------------------------------------
@@ -747,7 +780,7 @@ def login_page(request, session):
             return RedirectResponse("/", status_code=303)
         return Titled(
             "Monika — Sign In",
-            Link(rel="stylesheet", href="/static/app.css"),
+            Link(rel="stylesheet", href="/static/app.css?v=3"),
             Div(
                 Div(id="clerk-signin", style="min-height:400px;display:flex;justify-content:center;"),
                 Script("""
@@ -765,7 +798,7 @@ def login_page(request, session):
         )
     return Titled(
         "Monika — Login",
-        Link(rel="stylesheet", href="/static/app.css"),
+        Link(rel="stylesheet", href="/static/app.css?v=3"),
         Div(
             H2("Sign In", style="text-align:center; margin-bottom:1.5rem;"),
             Form(
@@ -794,7 +827,7 @@ def login_submit(email: str, password: str, session):
     if not user:
         return Titled(
             "Monika — Login",
-            Link(rel="stylesheet", href="/static/app.css"),
+            Link(rel="stylesheet", href="/static/app.css?v=3"),
             Div(
                 H2("Sign In", style="text-align:center; margin-bottom:1.5rem;"),
                 Form(
@@ -826,7 +859,7 @@ def register_page(request, session):
             return RedirectResponse("/", status_code=303)
         return Titled(
             "Monika — Create Account",
-            Link(rel="stylesheet", href="/static/app.css"),
+            Link(rel="stylesheet", href="/static/app.css?v=3"),
             Div(
                 Div(id="clerk-signup", style="min-height:400px;display:flex;justify-content:center;"),
                 Script("""
@@ -844,7 +877,7 @@ def register_page(request, session):
         )
     return Titled(
         "Monika — Register",
-        Link(rel="stylesheet", href="/static/app.css"),
+        Link(rel="stylesheet", href="/static/app.css?v=3"),
         Div(
             H2("Create Account", style="text-align:center; margin-bottom:1.5rem;"),
             Form(
@@ -869,7 +902,7 @@ def register_submit(email: str, password: str, display_name: str, session):
     if not user:
         return Titled(
             "Monika — Register",
-            Link(rel="stylesheet", href="/static/app.css"),
+            Link(rel="stylesheet", href="/static/app.css?v=3"),
             Div(
                 H2("Create Account", style="text-align:center; margin-bottom:1.5rem;"),
                 Form(
@@ -897,7 +930,7 @@ def logout(session):
     if is_clerk_enabled():
         return Titled(
             "Logging out…",
-            Link(rel="stylesheet", href="/static/app.css"),
+            Link(rel="stylesheet", href="/static/app.css?v=3"),
             Script("""
                 window.addEventListener('load', async function() {
                     await Clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor } });
@@ -915,7 +948,7 @@ def forgot_password_page():
         return RedirectResponse("/login", status_code=303)
     return Titled(
         "Monika — Reset Password",
-        Link(rel="stylesheet", href="/static/app.css"),
+        Link(rel="stylesheet", href="/static/app.css?v=3"),
         Div(
             H2("Reset Password", style="text-align:center; margin-bottom:1.5rem;"),
             Form(
@@ -941,7 +974,7 @@ def forgot_password_submit(email: str):
         logger.info(f"Password reset token for {email}: /reset-password?token={token}")
     return Titled(
         "Monika — Reset Password",
-        Link(rel="stylesheet", href="/static/app.css"),
+        Link(rel="stylesheet", href="/static/app.css?v=3"),
         Div(
             H2("Check Your Email", style="text-align:center; margin-bottom:1.5rem;"),
             P(msg, style="text-align:center;font-size:0.85rem;color:#64748b;max-width:320px;margin:0 auto 1rem;"),
@@ -957,7 +990,7 @@ def reset_password_page(token: str = ""):
         return RedirectResponse("/login", status_code=303)
     return Titled(
         "Monika — New Password",
-        Link(rel="stylesheet", href="/static/app.css"),
+        Link(rel="stylesheet", href="/static/app.css?v=3"),
         Div(
             H2("Set New Password", style="text-align:center; margin-bottom:1.5rem;"),
             Form(
@@ -979,7 +1012,7 @@ def reset_password_submit(token: str, password: str, password_confirm: str):
     if password != password_confirm:
         return Titled(
             "Monika — New Password",
-            Link(rel="stylesheet", href="/static/app.css"),
+            Link(rel="stylesheet", href="/static/app.css?v=3"),
             Div(
                 H2("Set New Password", style="text-align:center; margin-bottom:1.5rem;"),
                 Form(
@@ -999,7 +1032,7 @@ def reset_password_submit(token: str, password: str, password_confirm: str):
     if reset_password_with_token(token, password):
         return Titled(
             "Monika — Password Reset",
-            Link(rel="stylesheet", href="/static/app.css"),
+            Link(rel="stylesheet", href="/static/app.css?v=3"),
             Div(
                 H2("Password Reset", style="text-align:center; margin-bottom:1.5rem;"),
                 P("Your password has been updated.", style="text-align:center;font-size:0.85rem;color:#64748b;"),
@@ -1009,7 +1042,7 @@ def reset_password_submit(token: str, password: str, password_confirm: str):
         )
     return Titled(
         "Monika — Error",
-        Link(rel="stylesheet", href="/static/app.css"),
+        Link(rel="stylesheet", href="/static/app.css?v=3"),
         Div(
             H2("Invalid or Expired Link", style="text-align:center; margin-bottom:1.5rem;"),
             P("This reset link is invalid or has expired.", style="text-align:center;font-size:0.85rem;color:#dc2626;"),
@@ -2658,7 +2691,7 @@ def index(request, session, new: str = "", thread: str = ""):
 
     return (
         Title("Monika — Ashland Hill Media Finance"),
-        Link(rel="stylesheet", href="/static/app.css"),
+        Link(rel="stylesheet", href="/static/app.css?v=3"),
         Div(
             Div(id="left-overlay", cls="left-overlay", onclick="toggleLeftPane()"),
             _left_pane(user),
@@ -2684,7 +2717,7 @@ def index(request, session, new: str = "", thread: str = ""):
             _right_pane(),
             cls="app-layout",
         ),
-        Script(src="/static/chat.js"),
+        Script(src="/static/chat.js?v=4"),
     )
 
 
