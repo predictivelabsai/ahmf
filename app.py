@@ -1101,6 +1101,12 @@ def module_home(session):
     deals = []
     messages = []
     status_breakdown = []
+    active_count = 0
+    active_loan = 0
+    pipeline_count = 0
+    pipeline_loan = 0
+    total_collected = 0
+    total_mg = 0
 
     try:
         pool = get_pool()
@@ -1112,6 +1118,28 @@ def module_home(session):
             deals_count = stats[0]
             total_loan = float(stats[1])
             avg_rate = float(stats[2])
+
+            active_stats = s.execute(text("""
+                SELECT COUNT(*), COALESCE(SUM(loan_amount),0)
+                FROM ahmf.deals WHERE status = 'active'
+            """)).fetchone()
+            active_count = active_stats[0]
+            active_loan = float(active_stats[1])
+
+            pipeline_stats = s.execute(text("""
+                SELECT COUNT(*), COALESCE(SUM(loan_amount),0)
+                FROM ahmf.deals WHERE status = 'pipeline'
+            """)).fetchone()
+            pipeline_count = pipeline_stats[0]
+            pipeline_loan = float(pipeline_stats[1])
+
+            coll_stats = s.execute(text("""
+                SELECT COALESCE(SUM(amount_received), 0), COALESCE(SUM(mg_amount), 0)
+                FROM ahmf.collections c
+                JOIN ahmf.sales_contracts sc ON sc.contract_id = c.contract_id
+            """)).fetchone()
+            total_collected = float(coll_stats[0])
+            total_mg = float(coll_stats[1])
 
             tasks_row = s.execute(text("""
                 SELECT
@@ -1145,11 +1173,21 @@ def module_home(session):
     ep_fees = total_loan * 0.03
     profit_splits = total_loan * 0.015
 
+    collection_rate = (total_collected / total_mg * 100) if total_mg > 0 else 0
+
     kpi_cards = Div(
         Div(Div("Internal Rate of Return", cls="kpi-label"), Div(f"{avg_rate:.0f}%", cls="kpi-value"), Div("all time", cls="kpi-sub"), cls="kpi-card"),
         Div(Div("Gross Yield", cls="kpi-label"), Div(f"{avg_rate * 1.3:.0f}%", cls="kpi-value"), Div("all time, annualized", cls="kpi-sub"), cls="kpi-card"),
         Div(Div("Executive Producer Fees", cls="kpi-label"), Div(f"${ep_fees:,.0f}", cls="kpi-value"), Div("since start of the year", cls="kpi-sub"), cls="kpi-card"),
         Div(Div("Profit Splits", cls="kpi-label"), Div(f"${profit_splits:,.0f}", cls="kpi-value"), Div("since start of the year", cls="kpi-sub"), cls="kpi-card"),
+        cls="kpi-grid",
+    )
+
+    portfolio_cards = Div(
+        Div(Div("Active Deals", cls="kpi-label"), Div(str(active_count), cls="kpi-value"), Div(f"${active_loan:,.0f} exposure", cls="kpi-sub"), cls="kpi-card"),
+        Div(Div("Pipeline", cls="kpi-label"), Div(str(pipeline_count), cls="kpi-value"), Div(f"${pipeline_loan:,.0f} pending", cls="kpi-sub"), cls="kpi-card"),
+        Div(Div("Total Portfolio", cls="kpi-label"), Div(f"${total_loan:,.0f}", cls="kpi-value"), Div(f"{deals_count} deals", cls="kpi-sub"), cls="kpi-card"),
+        Div(Div("Collection Rate", cls="kpi-label"), Div(f"{collection_rate:.0f}%", cls="kpi-value"), Div(f"${total_collected:,.0f} collected", cls="kpi-sub"), cls="kpi-card"),
         cls="kpi-grid",
     )
 
@@ -1290,6 +1328,7 @@ def module_home(session):
             cls="dash-header",
         ),
         kpi_cards,
+        portfolio_cards,
         todo_section,
         deals_section,
         analytics_section,
@@ -1761,6 +1800,43 @@ def module_deal_detail(deal_id: str, session):
         cls="deal-section",
     )
 
+    # Capital waterfall
+    tax_credit_val = loan * 0.15 if loan else 0
+    gap_val = loan - total_sold - tax_credit_val if loan else 0
+    if gap_val < 0:
+        gap_val = 0
+    total_sources = total_sold + gap_val + tax_credit_val
+    ep_fee_wf = loan * 0.03 if loan else 0
+    interest_wf = interest_reserve
+    net_to_borrower = loan - ep_fee_wf - interest_wf if loan else 0
+
+    waterfall = Div(
+        H2("Capital Waterfall"),
+        Div(
+            Div(
+                H3("Sources", style="font-size:.85rem;margin-bottom:.75rem;"),
+                Div(Span("Pre-Sales", style="color:var(--ink-dim);"), Span(f"${total_sold:,.0f}", style="font-weight:600;"), cls="sidebar-kv"),
+                Div(Span("Gap / Unsold", style="color:var(--ink-dim);"), Span(f"${gap_val:,.0f}", style="font-weight:600;"), cls="sidebar-kv"),
+                Div(Span("Tax Credits", style="color:var(--ink-dim);"), Span(f"${tax_credit_val:,.0f}", style="font-weight:600;"), cls="sidebar-kv"),
+                Div(Span("Total Sources", style="color:var(--ink-dim);font-weight:600;"), Span(f"${total_sources:,.0f}", style="font-weight:700;color:var(--blue);"), cls="sidebar-kv",
+                    style="border-top:1px solid var(--line);padding-top:.5rem;margin-top:.5rem;"),
+                cls="chart-card", style="flex:1;",
+            ),
+            Div(
+                H3("Uses", style="font-size:.85rem;margin-bottom:.75rem;"),
+                Div(Span("Net Loan Facility", style="color:var(--ink-dim);"), Span(f"${loan:,.0f}", style="font-weight:600;"), cls="sidebar-kv"),
+                Div(Span("Less: EP Fees (3%)", style="color:var(--ink-dim);"), Span(f"(${ep_fee_wf:,.0f})", style="font-weight:600;color:#dc2626;"), cls="sidebar-kv"),
+                Div(Span("Less: Interest Reserve", style="color:var(--ink-dim);"), Span(f"(${interest_wf:,.0f})", style="font-weight:600;color:#dc2626;"), cls="sidebar-kv"),
+                Div(Span("Net to Borrower", style="color:var(--ink-dim);font-weight:600;"), Span(f"${net_to_borrower:,.0f}", style="font-weight:700;color:#16a34a;"), cls="sidebar-kv",
+                    style="border-top:1px solid var(--line);padding-top:.5rem;margin-top:.5rem;"),
+                cls="chart-card", style="flex:1;",
+            ),
+            style="display:flex;gap:1rem;",
+        ),
+        Div(id="chart-waterfall", style="height:260px;margin-top:1rem;"),
+        cls="deal-section",
+    )
+
     pre_sales_pct = (total_sold / loan * 100) if loan else 0
     unsold_pct = 100 - pre_sales_pct
     tax_pct = 15
@@ -1827,13 +1903,26 @@ def module_deal_detail(deal_id: str, session):
              {{x:months,y:[{total_sold*0.1:.0f},{total_sold*0.25:.0f},{total_sold*0.45:.0f},{total_sold*0.65:.0f},{total_sold*0.85:.0f},{total_sold:.0f}],
                type:'scatter',name:'Sold',line:{{color:'#0052CC'}}}}],
             {{...lo,margin:{{t:5,r:10,b:25,l:45}},xaxis:{{showgrid:false}},yaxis:{{showgrid:true,gridcolor:'#E5E5E5'}}}},cfg);
+
+        // Capital Waterfall
+        if(document.getElementById('chart-waterfall')) {{
+            var wfX = ['Pre-Sales','Gap/Unsold','Tax Credits','Total Sources','Gross Loan','EP Fees','Interest Rsv','Net to Borrower'];
+            var wfY = [{total_sold:.0f},{gap_val:.0f},{tax_credit_val:.0f},{total_sources:.0f},{loan:.0f},-{ep_fee_wf:.0f},-{interest_wf:.0f},{net_to_borrower:.0f}];
+            var wfColors = wfY.map(function(v,i){{ return i===3?'#0052CC':i===7?'#16a34a':v<0?'#dc2626':'#3B82F6'; }});
+            Plotly.newPlot('chart-waterfall',
+                [{{x:wfX,y:wfY.map(Math.abs),type:'bar',marker:{{color:wfColors}},
+                   text:wfY.map(function(v){{return v<0?'-$'+(Math.abs(v)/1e6).toFixed(1)+'M':'$'+(v/1e6).toFixed(1)+'M';}}),
+                   textposition:'outside',textfont:{{size:9}}}}],
+                {{...lo,margin:{{t:25,r:10,b:60,l:60}},xaxis:{{showgrid:false,tickangle:-30,tickfont:{{size:8}}}},
+                  yaxis:{{showgrid:true,gridcolor:'#E5E5E5',tickfont:{{size:8}}}},showlegend:false}},cfg);
+        }}
     }})();
     """)
 
     return Div(
         hero,
         Div(
-            Div(overview, key_terms, collateral_receivables, sales_section, tax_incentives, comms, cls="deal-main-col"),
+            Div(overview, key_terms, collateral_receivables, sales_section, tax_incentives, waterfall, comms, cls="deal-main-col"),
             right_sidebar,
             cls="deal-detail-layout",
         ),
@@ -2166,7 +2255,22 @@ def _contact_tab_content(contact_id, tab, pool):
                     Td(f"2024-{random.randint(1,12):02d}-{random.randint(1,28):02d}"),
                 ))
 
+        with pool.get_session() as s:
+            mg_stats = s.execute(sa_text("""
+                SELECT COUNT(DISTINCT sc.deal_id), COALESCE(SUM(sc.mg_amount), 0)
+                FROM ahmf.sales_contracts sc WHERE sc.distributor_id = :cid
+            """), {"cid": contact_id}).fetchone()
+        total_deal_count = mg_stats[0] if mg_stats else 0
+        total_mg = float(mg_stats[1]) if mg_stats else 0
+
+        stats_bar = Div(
+            Div(Div("Total Deals", cls="kpi-label"), Div(str(total_deal_count), cls="kpi-value"), cls="kpi-card"),
+            Div(Div("Total MG Value", cls="kpi-label"), Div(f"${total_mg:,.0f}", cls="kpi-value"), cls="kpi-card"),
+            cls="kpi-grid", style="grid-template-columns:repeat(2,1fr);margin-bottom:1rem;",
+        )
+
         return Div(
+            stats_bar,
             Div(
                 Button("⊕ New Report", cls="filter-chip"),
                 Button("⊲ Filter", cls="filter-chip"),
