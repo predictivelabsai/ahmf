@@ -58,6 +58,16 @@ def register_routes(rt):
         import math, random, json as _json
         pool = get_pool()
         with pool.get_session() as s:
+            # -- Overdue collections check ---
+            overdue_collections = s.execute(text("""
+                SELECT d.title, sc.territory, c.amount_due, c.due_date,
+                       EXTRACT(DAY FROM NOW() - c.due_date)::int AS days_overdue
+                FROM ahmf.collections c
+                JOIN ahmf.sales_contracts sc ON sc.contract_id = c.contract_id
+                LEFT JOIN ahmf.deals d ON d.deal_id = sc.deal_id
+                WHERE c.status = 'overdue' AND c.due_date < CURRENT_DATE
+                ORDER BY c.due_date ASC LIMIT 10
+            """)).fetchall()
             # -- Contracts with deal info ---
             contracts = s.execute(text("""
                 SELECT sc.contract_id, d.title, sc.territory, c.name AS distributor,
@@ -452,10 +462,29 @@ def register_routes(rt):
         }})();
         """))
 
+        # -- Overdue collections warning banner ---
+        overdue_banner = ""
+        if overdue_collections:
+            overdue_rows = [Div(
+                Span(f"⚠️ {oc[0] or 'Unknown'} — {oc[1] or '?'}: ${float(oc[2]):,.0f} due {oc[3]} ({oc[4]} days overdue)",
+                     style="font-size:.82rem;"),
+                style="padding:.35rem 0;",
+            ) for oc in overdue_collections]
+            overdue_banner = Div(
+                Div(
+                    Span("⚠️", style="font-size:1.1rem;margin-right:.5rem;"),
+                    Span(f"{len(overdue_collections)} Overdue Collection{'s' if len(overdue_collections) != 1 else ''}", style="font-weight:600;font-size:.9rem;"),
+                    style="display:flex;align-items:center;margin-bottom:.5rem;",
+                ),
+                *overdue_rows,
+                style="padding:1rem;background:#fef2f2;border:1px solid #fecaca;border-left:4px solid #dc2626;border-radius:8px;margin-bottom:1.25rem;color:#991b1b;",
+            )
+
         return Div(
             Div(H1("Sales & Collections"),
                 Button("+ New Contract", cls="auth-btn", hx_get="/module/sales/new", hx_target="#center-content", hx_swap="innerHTML"),
                 style="display:flex;justify-content:space-between;align-items:center;"),
+            overdue_banner,
             kpi_cards,
             variance_section,
             recent_activity,

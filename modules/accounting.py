@@ -421,3 +421,94 @@ def register_routes(rt):
                    "curr": currency, "cid": counterparty_id or None,
                    "date": posted_date or None, "ref": reference, "uid": session.get("user_id")})
         return module_accounting(session)
+
+    @rt("/module/accounting/balance/{deal_id}")
+    def accounting_balance(deal_id: str, session):
+        pool = get_pool()
+        with pool.get_session() as s:
+            deal = s.execute(text("""
+                SELECT title, loan_amount, interest_rate, term_months FROM ahmf.deals WHERE deal_id = :did
+            """), {"did": deal_id}).fetchone()
+            if not deal:
+                return Div(P("Deal not found."), cls="module-content")
+
+            # Assets: receivables from sales contracts
+            receivables = s.execute(text("""
+                SELECT COALESCE(SUM(sc.mg_amount), 0) AS total_mg,
+                       COALESCE(SUM(c.amount_received), 0) AS collected
+                FROM ahmf.sales_contracts sc
+                LEFT JOIN ahmf.collections c ON c.contract_id = sc.contract_id
+                WHERE sc.deal_id = :did
+            """), {"did": deal_id}).fetchone()
+
+            # Liabilities: disbursements and repayments
+            txn_summary = s.execute(text("""
+                SELECT txn_type, COALESCE(SUM(amount), 0)
+                FROM ahmf.transactions WHERE deal_id = :did
+                GROUP BY txn_type
+            """), {"did": deal_id}).fetchall()
+
+        title = deal[0]
+        loan = float(deal[1] or 0)
+        rate = float(deal[2] or 0)
+        term = deal[3] or 12
+
+        total_mg = float(receivables[0]) if receivables else 0
+        collected = float(receivables[1]) if receivables else 0
+        outstanding_receivables = total_mg - collected
+
+        txn_map = {r[0]: float(r[1]) for r in txn_summary}
+        disbursed = txn_map.get("disbursement", 0)
+        repaid = txn_map.get("repayment", 0)
+        interest_paid = txn_map.get("interest", 0)
+        fees_paid = txn_map.get("fee", 0)
+
+        accrued_interest = loan * rate / 100 * term / 12
+        ep_fees = loan * 0.03
+        outstanding_loan = disbursed - repaid
+
+        total_assets = outstanding_receivables + (loan * 0.15)  # receivables + tax credit estimate
+        total_liabilities = outstanding_loan + max(accrued_interest - interest_paid, 0) + max(ep_fees - fees_paid, 0)
+        net_equity = total_assets - total_liabilities
+
+        # Render balance sheet
+        return Div(
+            H1(f"Balance Sheet: {title}"),
+            Div(
+                Div(
+                    H3("Assets", style="color:#16a34a;"),
+                    Div(Span("Outstanding Receivables", style="color:var(--ink-dim);"), Span(f"${outstanding_receivables:,.0f}", style="font-weight:600;"), cls="sidebar-kv"),
+                    Div(Span("Tax Credit Estimate", style="color:var(--ink-dim);"), Span(f"${loan * 0.15:,.0f}", style="font-weight:600;"), cls="sidebar-kv"),
+                    Div(Span("Collections Received", style="color:var(--ink-dim);"), Span(f"${collected:,.0f}", style="font-weight:600;"), cls="sidebar-kv"),
+                    Div(Span("Total Assets", style="font-weight:600;"), Span(f"${total_assets:,.0f}", style="font-weight:700;color:#16a34a;"), cls="sidebar-kv",
+                        style="border-top:2px solid var(--line);padding-top:.5rem;margin-top:.5rem;"),
+                    cls="chart-card", style="flex:1;",
+                ),
+                Div(
+                    H3("Liabilities", style="color:#dc2626;"),
+                    Div(Span("Outstanding Loan", style="color:var(--ink-dim);"), Span(f"${outstanding_loan:,.0f}", style="font-weight:600;"), cls="sidebar-kv"),
+                    Div(Span("Accrued Interest (unpaid)", style="color:var(--ink-dim);"), Span(f"${max(accrued_interest - interest_paid, 0):,.0f}", style="font-weight:600;"), cls="sidebar-kv"),
+                    Div(Span("EP Fees (unpaid)", style="color:var(--ink-dim);"), Span(f"${max(ep_fees - fees_paid, 0):,.0f}", style="font-weight:600;"), cls="sidebar-kv"),
+                    Div(Span("Total Liabilities", style="font-weight:600;"), Span(f"${total_liabilities:,.0f}", style="font-weight:700;color:#dc2626;"), cls="sidebar-kv",
+                        style="border-top:2px solid var(--line);padding-top:.5rem;margin-top:.5rem;"),
+                    cls="chart-card", style="flex:1;",
+                ),
+                style="display:flex;gap:1rem;",
+            ),
+            Div(
+                Div(
+                    Div("Net Equity", cls="kpi-label"),
+                    Div(f"${net_equity:,.0f}", cls="kpi-value", style=f"color:{'#16a34a' if net_equity >= 0 else '#dc2626'};"),
+                    cls="kpi-card",
+                ),
+                Div(
+                    Div("Loan-to-Value", cls="kpi-label"),
+                    Div(f"{(outstanding_loan / total_assets * 100) if total_assets > 0 else 0:.0f}%", cls="kpi-value"),
+                    cls="kpi-card",
+                ),
+                cls="kpi-grid", style="grid-template-columns:repeat(2,1fr);margin-top:1rem;",
+            ),
+            Button("← Back to Deal", cls="filter-chip", style="margin:1rem 0;",
+                   onclick=f"loadModule('/module/deal/{deal_id}','Deal')"),
+            cls="module-content",
+        )

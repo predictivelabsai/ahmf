@@ -60,6 +60,7 @@ Return ONLY valid JSON (no markdown):
   }},
   "overall_score": <int>,
   "mitigations": ["<mitigation 1>", "<mitigation 2>", "<mitigation 3>"],
+  "recommendations": ["<actionable step 1: e.g. Secure completion bond from Film Finances>", "<actionable step 2>", "<actionable step 3>"],
   "summary": "<2-3 sentence risk assessment>"
 }}"""
     try:
@@ -72,6 +73,7 @@ Return ONLY valid JSON (no markdown):
         overall = data.get("overall_score", 50)
         tier = _tier_for_score(overall)
         mitigations = data.get("mitigations", [])
+        recommendations = data.get("recommendations", [])
         summary = data.get("summary", "")
 
         lines = [f"## Risk Assessment: {title}\n"]
@@ -86,6 +88,10 @@ Return ONLY valid JSON (no markdown):
             lines.append("**Mitigations:**")
             for m in mitigations:
                 lines.append(f"- {m}")
+        if recommendations:
+            lines.append("\n**Actionable Recommendations:**")
+            for i, r in enumerate(recommendations, 1):
+                lines.append(f"{i}. {r}")
         return "\n".join(lines)
     except Exception as e:
         return f"Error analyzing risk: {e}"
@@ -125,8 +131,12 @@ def register_routes(rt):
         return Div(
             Div(
                 H1("Production Risk Scoring"),
-                Button("+ New Assessment", cls="auth-btn",
-                       hx_get="/module/risk/new", hx_target="#center-content", hx_swap="innerHTML"),
+                Div(
+                    Button("⚖ Compare", cls="filter-chip", style="margin-right:.75rem;",
+                           onclick="loadModule('/module/risk/compare', 'Risk Comparison')"),
+                    Button("+ New Assessment", cls="auth-btn",
+                           hx_get="/module/risk/new", hx_target="#center-content", hx_swap="innerHTML"),
+                ),
                 style="display:flex;justify-content:space-between;align-items:center;",
             ),
             P("AI-driven feasibility engine — evaluate execution risk across 6 dimensions.", style="color:#64748b;margin-bottom:1.5rem;"),
@@ -179,7 +189,7 @@ Locations: {locations} | Stunts: {stunts}
 Jurisdiction: {jurisdiction} | Shoot Days: {shoot_days}
 
 Return ONLY valid JSON (no markdown):
-{{"scores": {{"Script Complexity": <int>, "Budget Feasibility": <int>, "Schedule Risk": <int>, "Jurisdictional Risk": <int>, "Crew/Talent Risk": <int>, "Completion Risk": <int>}}, "overall_score": <int>, "mitigations": ["..."], "summary": "..."}}"""
+{{"scores": {{"Script Complexity": <int>, "Budget Feasibility": <int>, "Schedule Risk": <int>, "Jurisdictional Risk": <int>, "Crew/Talent Risk": <int>, "Completion Risk": <int>}}, "overall_score": <int>, "mitigations": ["..."], "recommendations": ["<actionable step 1: e.g. Secure completion bond from Film Finances>", "<actionable step 2>", "<actionable step 3>"], "summary": "..."}}"""
         try:
             resp = llm.invoke(prompt)
             content = resp.content.strip()
@@ -193,6 +203,7 @@ Return ONLY valid JSON (no markdown):
         overall = data.get("overall_score", 50)
         tier = _tier_for_score(overall)
         mitigations = data.get("mitigations", [])
+        recommendations = data.get("recommendations", [])
         summary = data.get("summary", "")
 
         # Persist
@@ -204,7 +215,8 @@ Return ONLY valid JSON (no markdown):
             """), {
                 "title": title,
                 "details": json.dumps({"genre": genre, "budget": budget, "vfx_level": vfx_level,
-                                        "locations": locations, "jurisdiction": jurisdiction, "stunts": stunts, "shoot_days": shoot_days}),
+                                        "locations": locations, "jurisdiction": jurisdiction, "stunts": stunts,
+                                        "shoot_days": shoot_days, "recommendations": recommendations}),
                 "scores": json.dumps(scores), "overall": overall, "tier": tier,
                 "mits": json.dumps(mitigations), "summary": summary, "uid": session.get("user_id"),
             })
@@ -232,6 +244,8 @@ Return ONLY valid JSON (no markdown):
             Div(P(summary, style="color:#475569;font-size:0.9rem;"), style="margin:1rem 0;padding:1rem;background:#f8fafc;border-radius:12px;border:1px solid #e2e8f0;"),
             H2("Mitigations", style="margin-top:1.5rem;"),
             Ul(*[Li(m, style="margin:0.4rem 0;color:#475569;") for m in mitigations]) if mitigations else P("None identified."),
+            H2("Actionable Recommendations", style="margin-top:1rem;"),
+            Ol(*[Li(r, style="margin:0.4rem 0;color:#475569;") for r in recommendations]) if recommendations else P("None identified."),
             Button("Back to Risk Scoring", cls="auth-btn", style="margin-top:1.5rem;",
                    onclick="loadModule('/module/risk', 'Risk Scoring')"),
             cls="module-content",
@@ -248,9 +262,11 @@ Return ONLY valid JSON (no markdown):
         if not row:
             return Div(P("Assessment not found."), cls="module-content")
 
-        title, scores_json, overall, tier, mits_json, summary, details = row
+        title, scores_json, overall, tier, mits_json, summary, details_json = row
         scores = scores_json if isinstance(scores_json, dict) else json.loads(scores_json or "{}")
         mitigations = mits_json if isinstance(mits_json, list) else json.loads(mits_json or "[]")
+        details = details_json if isinstance(details_json, dict) else json.loads(details_json or "{}")
+        recommendations = details.get("recommendations", [])
         color = _tier_color(tier or "moderate")
 
         score_cards = [
@@ -270,6 +286,86 @@ Return ONLY valid JSON (no markdown):
             ),
             Div(P(summary or "", style="color:#475569;"), style="margin:1rem 0;padding:1rem;background:#f8fafc;border-radius:12px;border:1px solid #e2e8f0;"),
             H2("Mitigations"), Ul(*[Li(m) for m in mitigations]) if mitigations else P("None."),
+            H2("Actionable Recommendations", style="margin-top:1rem;"),
+            Ol(*[Li(r, style="margin:0.4rem 0;color:#475569;") for r in recommendations]) if recommendations else P("None identified."),
             Button("Back", cls="auth-btn", style="margin-top:1rem;", onclick="loadModule('/module/risk', 'Risk Scoring')"),
+            cls="module-content",
+        )
+
+    @rt("/module/risk/compare")
+    def risk_compare(session):
+        pool = get_pool()
+        with pool.get_session() as s:
+            assessments = s.execute(text("""
+                SELECT assessment_id, title, scores, overall_score, risk_tier, created_at
+                FROM ahmf.risk_assessments ORDER BY created_at DESC LIMIT 20
+            """)).fetchall()
+
+        if not assessments:
+            return Div(H1("Risk Comparison"), P("No assessments to compare."), cls="module-content")
+
+        import json as _json
+        dimensions = ["Script Complexity", "Budget Feasibility", "Schedule Risk",
+                      "Jurisdictional Risk", "Crew/Talent Risk", "Completion Risk"]
+
+        table_rows = []
+        radar_traces = []
+        colors = ['#0052CC', '#DC2626', '#16A34A', '#F59E0B', '#8B5CF6', '#EC4899']
+
+        for i, a in enumerate(assessments[:6]):
+            scores = a[2] if isinstance(a[2], dict) else _json.loads(a[2] or "{}")
+            tier = a[4] or "moderate"
+            color = {"low": "#16a34a", "moderate": "#f59e0b", "elevated": "#f97316", "high": "#dc2626"}.get(tier, "#64748b")
+
+            dim_cells = [Td(str(scores.get(d, "—")), style=f"text-align:center;") for d in dimensions]
+            table_rows.append(Tr(
+                Td(a[1], style="font-weight:500;"),
+                Td(Span(tier.upper(), style=f"color:{color};font-weight:600;")),
+                Td(f"{a[3]}/100", style="font-weight:600;"),
+                *dim_cells,
+            ))
+
+            # Radar chart data
+            vals = [scores.get(d, 50) for d in dimensions]
+            vals.append(vals[0])  # close the polygon
+            radar_traces.append({
+                "r": vals,
+                "theta": [d.split(" ")[0] for d in dimensions] + [dimensions[0].split(" ")[0]],
+                "name": a[1][:20],
+                "type": "scatterpolar",
+                "fill": "toself",
+                "fillcolor": f"{colors[i % len(colors)]}20",
+                "line": {"color": colors[i % len(colors)]},
+            })
+
+        radar_js = _json.dumps(radar_traces)
+
+        chart_script = Script(f"""
+        (function() {{
+            var traces = {radar_js};
+            var layout = {{
+                polar: {{radialaxis: {{visible: true, range: [0, 100]}}}},
+                showlegend: true, legend: {{font: {{size: 9}}, orientation: 'h', y: -0.15}},
+                paper_bgcolor: 'transparent', margin: {{t: 30, r: 40, b: 40, l: 40}},
+                font: {{size: 10, color: '#7A7A7A'}}
+            }};
+            if(document.getElementById('chart-risk-radar'))
+                Plotly.newPlot('chart-risk-radar', traces, layout, {{displayModeBar: false, responsive: true}});
+        }})();
+        """)
+
+        return Div(
+            Div(
+                H1("Risk Comparison"),
+                Button("← Back", cls="filter-chip", onclick="loadModule('/module/risk', 'Risk Scoring')"),
+                style="display:flex;justify-content:space-between;align-items:center;",
+            ),
+            Div(id="chart-risk-radar", style="height:350px;margin:1rem 0;"),
+            Table(
+                Thead(Tr(Th("Project"), Th("Tier"), Th("Overall"), *[Th(d.split(" ")[0], style="text-align:center;font-size:.75rem;") for d in dimensions])),
+                Tbody(*table_rows),
+                style="width:100%;border-collapse:collapse;font-size:.85rem;margin-top:1rem;",
+            ),
+            chart_script,
             cls="module-content",
         )

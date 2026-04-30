@@ -13,6 +13,7 @@ Launch:  python app.py          # port 5010
 
 import os
 import sys
+import json
 import uuid as _uuid
 import logging
 from pathlib import Path
@@ -552,6 +553,20 @@ async def copilot_query_endpoint(msg: str, module_id: str = "home", session=None
     clear_input = Script("document.getElementById('copilot-input').value='';")
 
     return Div(user_bubble, asst_bubble, clear_input)
+
+
+# ---------------------------------------------------------------------------
+# Notification Helper
+# ---------------------------------------------------------------------------
+
+def _create_notification(pool, deal_id, subject, body, user_id):
+    """Insert a notification message into ahmf.messages."""
+    from sqlalchemy import text
+    with pool.get_session() as s:
+        s.execute(text("""
+            INSERT INTO ahmf.messages (deal_id, from_user, subject, body, message_type, status)
+            VALUES (:did, :uid, :subj, :body, 'notification', 'open')
+        """), {"did": deal_id, "uid": user_id, "subj": subject, "body": body})
 
 
 # ---------------------------------------------------------------------------
@@ -1100,6 +1115,7 @@ def module_home(session):
     tasks_overdue = 0
     deals = []
     messages = []
+    notifications = []
     status_breakdown = []
     active_count = 0
     active_loan = 0
@@ -1162,6 +1178,12 @@ def module_home(session):
                 ORDER BY due_date ASC NULLS LAST LIMIT 5
             """)).fetchall()
 
+            notifications = s.execute(text("""
+                SELECT subject, body, created_at FROM ahmf.messages
+                WHERE message_type='notification' AND status='open'
+                ORDER BY created_at DESC LIMIT 5
+            """)).fetchall()
+
             status_breakdown = s.execute(text("""
                 SELECT status, COUNT(*), COALESCE(SUM(loan_amount),0)
                 FROM ahmf.deals GROUP BY status ORDER BY status
@@ -1189,6 +1211,19 @@ def module_home(session):
         Div(Div("Total Portfolio", cls="kpi-label"), Div(f"${total_loan:,.0f}", cls="kpi-value"), Div(f"{deals_count} deals", cls="kpi-sub"), cls="kpi-card"),
         Div(Div("Collection Rate", cls="kpi-label"), Div(f"{collection_rate:.0f}%", cls="kpi-value"), Div(f"${total_collected:,.0f} collected", cls="kpi-sub"), cls="kpi-card"),
         cls="kpi-grid",
+    )
+
+    notif_items = [Div(
+        Div(Span("\U0001f514", style="margin-right:.5rem;"), Span(n[0], style="font-weight:500;font-size:.85rem;"),
+            style="display:flex;align-items:center;"),
+        Div(n[1] or "", style="font-size:.75rem;color:var(--ink-muted);margin-top:.25rem;"),
+        style="padding:.75rem;border-left:3px solid #8b5cf6;background:#f5f3ff;border-radius:0 8px 8px 0;margin-bottom:.5rem;",
+    ) for n in notifications]
+
+    notif_section = Div(
+        Div(Span("\U0001f514", cls="section-icon"), Span("Notifications", cls="section-title-text"), cls="section-header"),
+        *(notif_items if notif_items else [Div("No new notifications", style="font-size:.8rem;color:var(--ink-dim);padding:.5rem;")]),
+        cls="dashboard-card",
     )
 
     todo_items = []
@@ -1329,6 +1364,7 @@ def module_home(session):
         ),
         kpi_cards,
         portfolio_cards,
+        notif_section,
         todo_section,
         deals_section,
         analytics_section,
@@ -1338,71 +1374,101 @@ def module_home(session):
 
 
 @rt("/module/reporting")
-def module_reporting(session):
+def module_reporting(session, view: str = "territory", period: str = "all"):
+    from sqlalchemy import text
+    from utils.db import get_pool
+    pool = get_pool()
+
+    period_clause = ""
+    if period == "year":
+        period_clause = "AND d.created_at >= DATE_TRUNC('year', CURRENT_DATE)"
+    elif period == "quarter":
+        period_clause = "AND d.created_at >= DATE_TRUNC('quarter', CURRENT_DATE)"
+    elif period == "month":
+        period_clause = "AND d.created_at >= DATE_TRUNC('month', CURRENT_DATE)"
+
+    with pool.get_session() as s:
+        if view == "territory":
+            rows = s.execute(text(f"""
+                SELECT sc.territory, COUNT(DISTINCT sc.deal_id), COALESCE(SUM(sc.mg_amount), 0),
+                       COALESCE(SUM(c.amount_received), 0)
+                FROM ahmf.sales_contracts sc
+                LEFT JOIN ahmf.collections c ON c.contract_id = sc.contract_id
+                JOIN ahmf.deals d ON d.deal_id = sc.deal_id
+                WHERE 1=1 {period_clause}
+                GROUP BY sc.territory ORDER BY SUM(sc.mg_amount) DESC NULLS LAST
+            """)).fetchall()
+            headers = ["Territory", "Deals", "Total MG", "Collected", "Collection Rate"]
+            data_rows = []
+            for r in rows:
+                mg = float(r[2])
+                col = float(r[3])
+                rate = f"{col/mg*100:.0f}%" if mg > 0 else "\u2014"
+                data_rows.append(Tr(Td(r[0] or "Unknown"), Td(str(r[1])), Td(f"${mg:,.0f}"), Td(f"${col:,.0f}"), Td(rate)))
+
+        elif view == "genre":
+            rows = s.execute(text(f"""
+                SELECT COALESCE(genre, 'Unknown'), COUNT(*), COALESCE(SUM(loan_amount), 0),
+                       COALESCE(AVG(loan_amount), 0), COALESCE(AVG(interest_rate), 0)
+                FROM ahmf.deals d WHERE 1=1 {period_clause}
+                GROUP BY genre ORDER BY SUM(loan_amount) DESC NULLS LAST
+            """)).fetchall()
+            headers = ["Genre", "Deals", "Total Exposure", "Avg Deal Size", "Avg Rate"]
+            data_rows = [Tr(Td(r[0]), Td(str(r[1])), Td(f"${float(r[2]):,.0f}"),
+                           Td(f"${float(r[3]):,.0f}"), Td(f"{float(r[4]):.1f}%")) for r in rows]
+
+        elif view == "status":
+            rows = s.execute(text(f"""
+                SELECT status, COUNT(*), COALESCE(SUM(loan_amount), 0), COALESCE(AVG(interest_rate), 0)
+                FROM ahmf.deals d WHERE 1=1 {period_clause}
+                GROUP BY status ORDER BY status
+            """)).fetchall()
+            headers = ["Status", "Deals", "Total Exposure", "Avg Rate"]
+            data_rows = [Tr(Td(r[0].title()), Td(str(r[1])), Td(f"${float(r[2]):,.0f}"),
+                           Td(f"{float(r[3]):.1f}%")) for r in rows]
+
+        else:  # size
+            rows = s.execute(text(f"""
+                SELECT CASE
+                    WHEN loan_amount < 5000000 THEN 'Under $5M'
+                    WHEN loan_amount < 10000000 THEN '$5M - $10M'
+                    WHEN loan_amount < 25000000 THEN '$10M - $25M'
+                    ELSE '$25M+'
+                END AS bucket, COUNT(*), COALESCE(SUM(loan_amount), 0), COALESCE(AVG(interest_rate), 0)
+                FROM ahmf.deals d WHERE loan_amount IS NOT NULL {period_clause}
+                GROUP BY bucket ORDER BY MIN(loan_amount)
+            """)).fetchall()
+            headers = ["Loan Size", "Deals", "Total Exposure", "Avg Rate"]
+            data_rows = [Tr(Td(r[0]), Td(str(r[1])), Td(f"${float(r[2]):,.0f}"),
+                           Td(f"{float(r[3]):.1f}%")) for r in rows]
+
+    if not data_rows:
+        data_rows = [Tr(Td("No data for this period.", colspan=str(len(headers)), style="text-align:center;padding:2rem;color:#94a3b8;"))]
+
+    view_buttons = []
+    for v, label in [("territory", "By Territory"), ("genre", "By Genre"), ("status", "By Status"), ("size", "By Loan Size")]:
+        active = " filter-active" if v == view else ""
+        view_buttons.append(Button(label, cls=f"filter-chip{active}",
+            hx_get=f"/module/reporting?view={v}&period={period}", hx_target="#center-content", hx_swap="innerHTML"))
+
+    period_buttons = []
+    for p, label in [("all", "All Time"), ("year", "This Year"), ("quarter", "This Quarter"), ("month", "This Month")]:
+        active = " filter-active" if p == period else ""
+        period_buttons.append(Button(label, cls=f"filter-chip{active}",
+            hx_get=f"/module/reporting?view={view}&period={p}", hx_target="#center-content", hx_swap="innerHTML"))
+
     return Div(
         H1("Reporting"),
-        H2("New Report", style="margin-top:.5rem;"),
         Div(
-            Div(
-                Div("📊", cls="report-template-icon"),
-                H3("Existing Templates"),
-                cls="report-template-card",
-            ),
-            Div(
-                Div("📄", cls="report-template-icon"),
-                H3("Custom Template"),
-                cls="report-template-card",
-            ),
-            cls="report-templates",
+            Div(*view_buttons, style="display:flex;gap:.5rem;flex-wrap:wrap;"),
+            Div(*period_buttons, style="display:flex;gap:.5rem;flex-wrap:wrap;"),
+            style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:1rem;",
         ),
-        H2("Favorites", style="margin-top:2rem;"),
-        Div(
-            Div(
-                Div("Sales & Collected", cls="chart-title"),
-                Div(id="chart-rpt-sales", style="height:140px;"),
-                cls="chart-card",
-            ),
-            Div(
-                Div("Sold vs Unsold", cls="chart-title"),
-                Div(id="chart-rpt-unsold", style="height:140px;"),
-                cls="chart-card",
-            ),
-            Div(
-                Div("⊕", style="font-size:2rem;color:var(--ink-dim);margin-bottom:.5rem;"),
-                Div("Add report", style="font-size:.82rem;color:var(--ink-dim);"),
-                cls="report-template-card", style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:180px;",
-            ),
-            Div(
-                Div("⊕", style="font-size:2rem;color:var(--ink-dim);margin-bottom:.5rem;"),
-                Div("Add report", style="font-size:.82rem;color:var(--ink-dim);"),
-                cls="report-template-card", style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:180px;",
-            ),
-            cls="report-templates",
-        ),
-        H2("Saved Reports", style="margin-top:2rem;"),
         Table(
-            Thead(Tr(Th("Name"), Th("Dashboards"), Th("Owner"), Th("Last Updated"), Th("Actions"))),
-            Tbody(
-                Tr(Td("Sales & Collections"), Td("1"), Td("User Name"), Td("2026-04-18"), Td("📤 ⬇ 🔗")),
-                Tr(Td("Sold VS Unsolds"), Td("1"), Td("User Name"), Td("2026-04-18"), Td("📤 ⬇ 🔗")),
-                Tr(Td("Post-Maturity Interest (Portfolio 1)"), Td("1"), Td("User Name"), Td("2026-04-18"), Td("📤 ⬇ 🔗")),
-                Tr(Td("Deal Expenses (All Portfolios)"), Td("2"), Td("User Name"), Td("2026-04-18"), Td("📤 ⬇ 🔗")),
-                Tr(Td("Net Principal (Portfolio 2)"), Td("4"), Td("User Name"), Td("2026-04-18"), Td("📤 ⬇ 🔗")),
-            ),
+            Thead(Tr(*[Th(h) for h in headers])),
+            Tbody(*data_rows),
+            style="width:100%;border-collapse:collapse;font-size:.85rem;",
         ),
-        Script("""
-        (function() {
-            var months = ['Jan','Feb','Mar','Apr','May','Jun'];
-            var lo = {margin:{t:5,r:10,b:25,l:40},paper_bgcolor:'transparent',plot_bgcolor:'transparent',font:{size:9,color:'#999'},xaxis:{showgrid:false},yaxis:{showgrid:true,gridcolor:'#E5E5E5'},showlegend:true,legend:{font:{size:8}}};
-            var cfg = {displayModeBar:false,responsive:true};
-            Plotly.newPlot('chart-rpt-sales',
-                [{x:months,y:[50,65,80,90,110,120],type:'scatter',name:'Sales',line:{color:'#0052CC'}},
-                 {x:months,y:[30,45,55,70,85,100],type:'scatter',name:'Collected',line:{color:'#16A34A'}}],lo,cfg);
-            Plotly.newPlot('chart-rpt-unsold',
-                [{x:months,y:[200,180,160,140,120,100],type:'scatter',name:'Sold',line:{color:'#0052CC'}},
-                 {x:months,y:[50,70,90,110,130,150],type:'scatter',name:'Unsold',line:{color:'#DC2626'}}],lo,cfg);
-        })();
-        """),
         cls="module-content",
     )
 
@@ -1519,6 +1585,72 @@ def module_deals(session, status: str = "", loan_min: str = "", loan_max: str = 
     )
 
 
+@rt("/module/deal/new")
+def deal_new_form(session):
+    from config.settings import GENRES, PROJECT_TYPES, DEAL_STATUSES, TERRITORIES, CURRENCIES
+    genre_opts = [Option(g, value=g) for g in GENRES]
+    type_opts = [Option(t.replace("_", " ").title(), value=t) for t in PROJECT_TYPES]
+    currency_opts = [Option(c, value=c) for c in ["USD", "EUR", "GBP", "CAD", "AUD"]]
+    collateral_opts = [Option(c, value=c) for c in ["Pre-Sales", "Gap/Unsold", "Tax Credit"]]
+
+    return Div(
+        H1("New Deal"),
+        Form(
+            Div(
+                Div(Label("Title", Input(type="text", name="title", required=True, placeholder="Project title")), style="flex:1"),
+                Div(Label("Status", Select(*[Option(s.title(), value=s) for s in DEAL_STATUSES], name="status")), style="flex:1"),
+                style="display:flex;gap:1rem;",
+            ),
+            Div(
+                Div(Label("Project Type", Select(*type_opts, name="project_type")), style="flex:1"),
+                Div(Label("Genre", Select(*genre_opts, name="genre")), style="flex:1"),
+                style="display:flex;gap:1rem;",
+            ),
+            Div(
+                Div(Label("Loan Amount", Input(type="number", name="loan_amount", placeholder="0")), style="flex:1"),
+                Div(Label("Currency", Select(*currency_opts, name="currency")), style="flex:1"),
+                Div(Label("Interest Rate (%)", Input(type="number", name="interest_rate", step="0.01", placeholder="0")), style="flex:1"),
+                Div(Label("Term (months)", Input(type="number", name="term_months", placeholder="12")), style="flex:1"),
+                style="display:flex;gap:1rem;",
+            ),
+            Div(
+                Div(Label("Collateral Type", Select(*collateral_opts, name="collateral_type")), style="flex:1"),
+                style="display:flex;gap:1rem;",
+            ),
+            Div(
+                Div(Label("Origination Date", Input(type="date", name="origination_date")), style="flex:1"),
+                Div(Label("Maturity Date", Input(type="date", name="maturity_date")), style="flex:1"),
+                style="display:flex;gap:1rem;",
+            ),
+            Div(
+                Div(Label("Borrower", Input(type="text", name="borrower_name", placeholder="Borrower name")), style="flex:1"),
+                Div(Label("Budget ($)", Input(type="number", name="budget", placeholder="0")), style="flex:1"),
+                style="display:flex;gap:1rem;",
+            ),
+            Div(
+                Div(Label("Producer", Input(type="text", name="producer", placeholder="Producer name")), style="flex:1"),
+                Div(Label("Director", Input(type="text", name="director", placeholder="Director name")), style="flex:1"),
+                style="display:flex;gap:1rem;",
+            ),
+            Label("Cast", Input(type="text", name="cast_summary", placeholder="Key cast members")),
+            Label("Territory", Input(type="text", name="territory", placeholder="e.g. Domestic, International")),
+            Label("Notes", Textarea(name="notes", placeholder="Additional notes about this deal...", rows="3",
+                                    style="width:100%;border:1px solid #d1d5db;border-radius:6px;padding:0.5rem;font-size:0.9rem;")),
+            Div(
+                Button("Create Deal", type="submit", cls="auth-btn"),
+                A("Cancel", href="#", onclick="loadModule('/module/deals', 'Deals')", style="margin-left:1rem;color:#64748b;"),
+                style="margin-top:1rem;",
+            ),
+            cls="auth-form",
+            method="post",
+            hx_post="/module/deal/create",
+            hx_target="#center-content",
+            hx_swap="innerHTML",
+        ),
+        cls="module-content",
+    )
+
+
 @rt("/module/deal/{deal_id}")
 def module_deal_detail(deal_id: str, session):
     from sqlalchemy import text as sa_text
@@ -1548,6 +1680,14 @@ def module_deal_detail(deal_id: str, session):
             SELECT subject, due_date, status FROM ahmf.messages
             WHERE deal_id = :did AND message_type='task'
             ORDER BY due_date ASC NULLS LAST LIMIT 6
+        """), {"did": deal_id}).fetchall()
+
+        deal_credit = s.execute(sa_text("""
+            SELECT c.name, cr.score, cr.risk_tier, sc.mg_amount
+            FROM ahmf.sales_contracts sc
+            JOIN ahmf.contacts c ON c.contact_id = sc.distributor_id
+            LEFT JOIN ahmf.credit_ratings cr ON cr.contact_id = c.contact_id
+            WHERE sc.deal_id = :did
         """), {"did": deal_id}).fetchall()
 
     if not deal:
@@ -1758,6 +1898,37 @@ def module_deal_detail(deal_id: str, session):
             cls="sidebar-task-item",
         ))
 
+    # Weighted-average deal credit rating
+    total_weight = sum(float(dc[3]) for dc in deal_credit if dc[3] and dc[1])
+    weighted_score = sum(float(dc[1]) * float(dc[3]) for dc in deal_credit if dc[1] and dc[3]) / total_weight if total_weight > 0 else 0
+    wa_tier = "A" if weighted_score >= 80 else "B" if weighted_score >= 60 else "C" if weighted_score >= 40 else "D" if weighted_score > 0 else "N/A"
+    wa_tier_color = {"A": "#16a34a", "B": "#0052CC", "C": "#f59e0b", "D": "#dc2626"}.get(wa_tier, "#64748b")
+
+    credit_counterparty_rows = []
+    for dc in deal_credit:
+        dc_name = dc[0] or "Unknown"
+        dc_score = f"{dc[1]:.0f}" if dc[1] else "—"
+        dc_tier = dc[2] or "—"
+        dc_mg = f"${float(dc[3]):,.0f}" if dc[3] else "—"
+        credit_counterparty_rows.append(Div(
+            Div(Span(dc_name, style="font-size:.72rem;font-weight:500;flex:1;"), Span(dc_score, style="font-size:.72rem;font-weight:600;"), cls="sidebar-kv"),
+            Div(Span(f"Tier: {dc_tier}", style="font-size:.65rem;color:var(--ink-dim);"), Span(f"MG: {dc_mg}", style="font-size:.65rem;color:var(--ink-dim);"), cls="sidebar-kv"),
+            style="padding:.25rem 0;border-bottom:1px solid var(--line);",
+        ))
+
+    credit_card = Div(
+        H3("Deal Credit", style="font-size:.85rem;"),
+        Div(
+            Div(Span("Weighted Avg Score", style="color:var(--ink-dim);font-size:.72rem;"),
+                Span(f"{weighted_score:.0f}" if weighted_score > 0 else "N/A", style=f"font-size:.85rem;font-weight:700;color:{wa_tier_color};"), cls="sidebar-kv"),
+            Div(Span("Risk Tier", style="color:var(--ink-dim);font-size:.72rem;"),
+                Span(wa_tier, style=f"font-size:.85rem;font-weight:700;color:{wa_tier_color};"), cls="sidebar-kv"),
+            style="margin-bottom:.5rem;padding-bottom:.5rem;border-bottom:1px solid var(--line);",
+        ),
+        *(credit_counterparty_rows if credit_counterparty_rows else [Div("No counterparty ratings", style="font-size:.72rem;color:var(--ink-dim);")]),
+        cls="sidebar-card",
+    )
+
     right_sidebar = Div(
         Div(
             H3("Key Terms", style="font-size:.85rem;"),
@@ -1774,6 +1945,7 @@ def module_deal_detail(deal_id: str, session):
             Div(Span("Maturity Date", style="color:var(--ink-dim);font-size:.72rem;"), Span(str(mat_date), style="font-size:.72rem;font-weight:500;"), cls="sidebar-kv"),
             cls="sidebar-card",
         ),
+        credit_card,
         Div(
             H3("Transactions", style="font-size:.85rem;"),
             *(txn_items if txn_items else [Div("No transactions", style="font-size:.72rem;color:var(--ink-dim);")]),
@@ -1927,86 +2099,53 @@ def module_deal_detail(deal_id: str, session):
             cls="deal-detail-layout",
         ),
         chart_js,
-        Button("← Back to Deals", cls="filter-chip", style="margin:1rem 0;",
-               onclick="loadModule('/module/deals','Deals')"),
-        cls="module-content deal-detail-page",
-    )
-
-
-@rt("/module/deal/new")
-def deal_new_form(session):
-    from config.settings import GENRES, PROJECT_TYPES, DEAL_STATUSES, TERRITORIES
-    genre_opts = [Option(g, value=g) for g in GENRES]
-    type_opts = [Option(t.replace("_", " ").title(), value=t) for t in PROJECT_TYPES]
-
-    return Div(
-        H1("New Deal"),
-        Form(
-            Div(
-                Div(Label("Title", Input(type="text", name="title", required=True, placeholder="Project title")), style="flex:1"),
-                Div(Label("Status", Select(*[Option(s.title(), value=s) for s in DEAL_STATUSES], name="status")), style="flex:1"),
-                style="display:flex;gap:1rem;",
-            ),
-            Div(
-                Div(Label("Project Type", Select(*type_opts, name="project_type")), style="flex:1"),
-                Div(Label("Genre", Select(*genre_opts, name="genre")), style="flex:1"),
-                style="display:flex;gap:1rem;",
-            ),
-            Div(
-                Div(Label("Loan Amount ($)", Input(type="number", name="loan_amount", placeholder="0")), style="flex:1"),
-                Div(Label("Interest Rate (%)", Input(type="number", name="interest_rate", step="0.01", placeholder="0")), style="flex:1"),
-                Div(Label("Term (months)", Input(type="number", name="term_months", placeholder="12")), style="flex:1"),
-                style="display:flex;gap:1rem;",
-            ),
-            Div(
-                Div(Label("Borrower", Input(type="text", name="borrower_name", placeholder="Borrower name")), style="flex:1"),
-                Div(Label("Budget ($)", Input(type="number", name="budget", placeholder="0")), style="flex:1"),
-                style="display:flex;gap:1rem;",
-            ),
-            Div(
-                Div(Label("Producer", Input(type="text", name="producer", placeholder="Producer name")), style="flex:1"),
-                Div(Label("Director", Input(type="text", name="director", placeholder="Director name")), style="flex:1"),
-                style="display:flex;gap:1rem;",
-            ),
-            Label("Cast", Input(type="text", name="cast_summary", placeholder="Key cast members")),
-            Label("Territory", Input(type="text", name="territory", placeholder="e.g. Domestic, International")),
-            Div(
-                Button("Create Deal", type="submit", cls="auth-btn"),
-                A("Cancel", href="#", onclick="loadModule('/module/deals', 'Deals')", style="margin-left:1rem;color:#64748b;"),
-                style="margin-top:1rem;",
-            ),
-            cls="auth-form",
-            method="post",
-            hx_post="/module/deal/create",
-            hx_target="#center-content",
-            hx_swap="innerHTML",
+        Div(
+            A("\U0001f4ca Balance Sheet", href="#", cls="filter-chip", style="margin-right:.5rem;text-decoration:none;",
+              onclick=f"loadModule('/module/accounting/balance/{deal_id}','Balance Sheet')"),
+            Button("← Back to Deals", cls="filter-chip",
+                   onclick="loadModule('/module/deals','Deals')"),
+            style="margin:1rem 0;display:flex;align-items:center;gap:.5rem;",
         ),
-        cls="module-content",
+        cls="module-content deal-detail-page",
     )
 
 
 @rt("/module/deal/create", methods=["POST"])
 def deal_create(session, title: str, status: str = "pipeline", project_type: str = "feature_film",
-                genre: str = "", loan_amount: float = 0, interest_rate: float = 0,
-                term_months: int = 12, borrower_name: str = "", budget: float = 0,
-                producer: str = "", director: str = "", cast_summary: str = "", territory: str = ""):
+                genre: str = "", loan_amount: float = 0, currency: str = "USD",
+                interest_rate: float = 0, term_months: int = 12,
+                collateral_type: str = "Pre-Sales",
+                origination_date: str = "", maturity_date: str = "",
+                borrower_name: str = "", budget: float = 0,
+                producer: str = "", director: str = "", cast_summary: str = "",
+                territory: str = "", notes: str = ""):
     from sqlalchemy import text
     from utils.db import get_pool
     user_id = session.get("user_id")
+    notes_json = json.dumps({"notes": notes}) if notes else None
     pool = get_pool()
     with pool.get_session() as s:
         s.execute(text("""
-            INSERT INTO ahmf.deals (title, status, project_type, genre, loan_amount, interest_rate,
-                term_months, borrower_name, budget, producer, director, cast_summary, territory, created_by)
-            VALUES (:title, :status, :type, :genre, :amount, :rate, :term, :borrower, :budget,
-                :producer, :director, :cast, :territory, :uid)
+            INSERT INTO ahmf.deals (title, status, project_type, genre, loan_amount, currency,
+                interest_rate, term_months, collateral_type, origination_date, maturity_date,
+                borrower_name, budget, producer, director, cast_summary, territory, notes, created_by)
+            VALUES (:title, :status, :type, :genre, :amount, :currency, :rate, :term,
+                :collateral_type, :origination_date, :maturity_date, :borrower, :budget,
+                :producer, :director, :cast, :territory, :notes, :uid)
         """), {
             "title": title, "status": status, "type": project_type, "genre": genre,
-            "amount": loan_amount or None, "rate": interest_rate or None, "term": term_months,
+            "amount": loan_amount or None, "currency": currency,
+            "rate": interest_rate or None, "term": term_months,
+            "collateral_type": collateral_type,
+            "origination_date": origination_date or None,
+            "maturity_date": maturity_date or None,
             "borrower": borrower_name, "budget": budget or None,
             "producer": producer, "director": director, "cast": cast_summary,
-            "territory": territory, "uid": user_id,
+            "territory": territory, "notes": notes_json, "uid": user_id,
         })
+    if status in ('active', 'closed'):
+        _create_notification(pool, None, f"Deal '{title}' moved to {status}",
+                            f"Deal {title} ({genre}) with loan ${loan_amount:,.0f} is now {status}.", user_id)
     return module_deals(session)
 
 

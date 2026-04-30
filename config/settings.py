@@ -45,11 +45,28 @@ VFX_LEVELS = ["None", "Light", "Moderate", "Heavy", "VFX-Driven"]
 # Cast tiers for budgeting
 CAST_TIERS = ["Unknown", "Emerging", "Mid-Level", "A-List", "Marquee"]
 
-# Budget categories
+# Budget categories (industry-standard line items)
 BUDGET_CATEGORIES = [
-    "Above-the-Line", "Below-the-Line (Production)", "Below-the-Line (Post)",
-    "Insurance & Legal", "Financing Costs", "Contingency",
+    "Story & Rights", "Producer", "Director", "Cast",
+    "Extras", "Production Staff", "Art Department", "Set Construction",
+    "Props", "Wardrobe", "Makeup & Hair", "Grip & Electrical",
+    "Camera", "Sound", "Transportation", "Locations", "Catering",
+    "Visual Effects", "Music", "Post-Production Picture",
+    "Post-Production Sound", "Insurance", "Legal", "Financing Costs",
+    "Publicity", "Contingency", "Overhead/Fee",
 ]
+
+# Budget category groupings
+BUDGET_GROUPS = {
+    "Above-the-Line (ATL)": ["Story & Rights", "Producer", "Director", "Cast"],
+    "Below-the-Line (BTL)": [
+        "Extras", "Production Staff", "Art Department", "Set Construction",
+        "Props", "Wardrobe", "Makeup & Hair", "Grip & Electrical",
+        "Camera", "Sound", "Transportation", "Locations", "Catering",
+    ],
+    "Post-Production": ["Visual Effects", "Music", "Post-Production Picture", "Post-Production Sound"],
+    "Other": ["Insurance", "Legal", "Financing Costs", "Publicity", "Contingency", "Overhead/Fee"],
+}
 
 # Closing checklist template
 CLOSING_CHECKLIST_TEMPLATE = [

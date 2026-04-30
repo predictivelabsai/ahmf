@@ -8,7 +8,7 @@ import os, json, logging
 from fasthtml.common import *
 from sqlalchemy import text
 from utils.db import get_pool
-from config.settings import GENRES, VFX_LEVELS, CAST_TIERS
+from config.settings import GENRES, VFX_LEVELS, CAST_TIERS, BUDGET_CATEGORIES, BUDGET_GROUPS
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +24,7 @@ def generate_budget_tool(title: str, genre: str = "Drama", locations: str = "",
                          shoot_days: str = "30") -> str:
     """Generate a 3-scenario production budget for a film project. Returns budget breakdown by department."""
     llm = _get_llm()
+    cats = ", ".join(BUDGET_CATEGORIES)
     prompt = f"""You are a film production budget expert. Generate a production budget with 3 scenarios for this project.
 
 Project: {title} | Genre: {genre} | Cast Tier: {cast_tier}
@@ -32,15 +33,20 @@ VFX Level: {vfx_level} | Locations: {locations} | Shoot Days: {shoot_days}
 Return ONLY valid JSON:
 {{
   "scenarios": {{
-    "low": {{"total": <number>, "items": [{{"category": "Above-the-Line", "subcategory": "Director", "amount": <number>}}, ...]}},
+    "low": {{"total": <number>, "items": [{{"category": "<category>", "subcategory": "<line item detail>", "amount": <number>}}, ...]}},
     "mid": {{"total": <number>, "items": [...]}},
     "high": {{"total": <number>, "items": [...]}}
   }},
   "summary": "<2 sentence budget analysis>"
 }}
 
-Categories: Above-the-Line, Below-the-Line (Production), Below-the-Line (Post), Insurance & Legal, Financing Costs, Contingency.
-Include 8-12 line items per scenario with realistic subcategories."""
+Use these industry-standard categories grouped as:
+  ATL (Above-the-Line): Story & Rights, Producer, Director, Cast
+  BTL (Below-the-Line): Extras, Production Staff, Art Department, Set Construction, Props, Wardrobe, Makeup & Hair, Grip & Electrical, Camera, Sound, Transportation, Locations, Catering
+  Post-Production: Visual Effects, Music, Post-Production Picture, Post-Production Sound
+  Other: Insurance, Legal, Financing Costs, Publicity, Contingency, Overhead/Fee
+
+Include 15-20 line items per scenario covering all groups."""
     try:
         resp = llm.invoke(prompt)
         content = resp.content.strip()
@@ -126,9 +132,14 @@ Project: {title} | Genre: {genre} | Cast Tier: {cast_tier}
 VFX Level: {vfx_level} | Locations: {locations} | Shoot Days: {shoot_days}
 
 Return ONLY valid JSON:
-{{"scenarios": {{"low": {{"total": <number>, "items": [{{"category": "...", "subcategory": "...", "amount": <number>}}]}}, "mid": {{"total": ..., "items": [...]}}, "high": {{"total": ..., "items": [...]}}}}, "summary": "..."}}
+{{"scenarios": {{"low": {{"total": <number>, "items": [{{"category": "<category>", "subcategory": "<line item detail>", "amount": <number>}}]}}, "mid": {{"total": ..., "items": [...]}}, "high": {{"total": ..., "items": [...]}}}}, "summary": "..."}}
 
-Categories: Above-the-Line, Below-the-Line (Production), Below-the-Line (Post), Insurance & Legal, Financing Costs, Contingency. 8-12 items per scenario."""
+Use these industry-standard categories grouped as:
+  ATL (Above-the-Line): Story & Rights, Producer, Director, Cast
+  BTL (Below-the-Line): Extras, Production Staff, Art Department, Set Construction, Props, Wardrobe, Makeup & Hair, Grip & Electrical, Camera, Sound, Transportation, Locations, Catering
+  Post-Production: Visual Effects, Music, Post-Production Picture, Post-Production Sound
+  Other: Insurance, Legal, Financing Costs, Publicity, Contingency, Overhead/Fee
+Include 15-20 items per scenario covering all groups."""
         try:
             resp = llm.invoke(prompt)
             content = resp.content.strip()
@@ -154,19 +165,38 @@ Categories: Above-the-Line, Below-the-Line (Production), Below-the-Line (Post), 
                 """), {"title": title, "params": params, "sc": sc_name, "total": sc.get("total", 0),
                        "breakdown": json.dumps(sc.get("items", [])), "summary": summary, "uid": session.get("user_id")})
 
-        # Render results
+        # Render results with ATL/BTL/Post/Other grouping
         scenario_tabs = []
         for sc_name in ["low", "mid", "high"]:
             sc = scenarios.get(sc_name, {})
             items = sc.get("items", [])
-            tab_rows = [Tr(Td(i.get("category", "")), Td(i.get("subcategory", "")),
-                           Td(f"${i.get('amount', 0):,.0f}", style="text-align:right;"))
-                        for i in items]
+            grouped_rows = []
+            for group_name, group_cats in BUDGET_GROUPS.items():
+                group_items = [i for i in items if i.get("category", "") in group_cats]
+                if group_items:
+                    group_total = sum(i.get("amount", 0) for i in group_items)
+                    grouped_rows.append(Tr(
+                        Td(B(group_name), colspan="2", style="background:#f1f5f9;padding:0.5rem;"),
+                        Td(B(f"${group_total:,.0f}"), style="text-align:right;background:#f1f5f9;padding:0.5rem;"),
+                    ))
+                    for i in group_items:
+                        grouped_rows.append(Tr(
+                            Td(i.get("category", ""), style="padding-left:1.5rem;color:#64748b;"),
+                            Td(i.get("subcategory", "")),
+                            Td(f"${i.get('amount', 0):,.0f}", style="text-align:right;"),
+                        ))
+            # Any items not matching known groups
+            ungrouped = [i for i in items if i.get("category", "") not in
+                         [c for cats in BUDGET_GROUPS.values() for c in cats]]
+            if ungrouped:
+                for i in ungrouped:
+                    grouped_rows.append(Tr(Td(i.get("category", "")), Td(i.get("subcategory", "")),
+                                           Td(f"${i.get('amount', 0):,.0f}", style="text-align:right;")))
             scenario_tabs.append(Div(
                 H2(f"{sc_name.upper()} — ${sc.get('total', 0):,.0f}", style="margin-top:1.5rem;"),
                 Table(
                     Thead(Tr(Th("Category"), Th("Item"), Th("Amount", style="text-align:right;"))),
-                    Tbody(*tab_rows),
+                    Tbody(*grouped_rows),
                     style="width:100%;border-collapse:collapse;font-size:0.85rem;",
                 ),
             ))
@@ -196,8 +226,26 @@ Categories: Above-the-Line, Below-the-Line (Production), Below-the-Line (Post), 
             return Div(P("Budget not found."), cls="module-content")
         title, scenario, total, breakdown_json, summary = row
         items = breakdown_json if isinstance(breakdown_json, list) else json.loads(breakdown_json or "[]")
-        tab_rows = [Tr(Td(i.get("category", "")), Td(i.get("subcategory", "")),
-                       Td(f"${i.get('amount', 0):,.0f}", style="text-align:right;")) for i in items]
+        grouped_rows = []
+        for group_name, group_cats in BUDGET_GROUPS.items():
+            group_items = [i for i in items if i.get("category", "") in group_cats]
+            if group_items:
+                group_total = sum(i.get("amount", 0) for i in group_items)
+                grouped_rows.append(Tr(
+                    Td(B(group_name), colspan="2", style="background:#f1f5f9;padding:0.5rem;"),
+                    Td(B(f"${group_total:,.0f}"), style="text-align:right;background:#f1f5f9;padding:0.5rem;"),
+                ))
+                for i in group_items:
+                    grouped_rows.append(Tr(
+                        Td(i.get("category", ""), style="padding-left:1.5rem;color:#64748b;"),
+                        Td(i.get("subcategory", "")),
+                        Td(f"${i.get('amount', 0):,.0f}", style="text-align:right;"),
+                    ))
+        ungrouped = [i for i in items if i.get("category", "") not in
+                     [c for cats in BUDGET_GROUPS.values() for c in cats]]
+        for i in ungrouped:
+            grouped_rows.append(Tr(Td(i.get("category", "")), Td(i.get("subcategory", "")),
+                                   Td(f"${i.get('amount', 0):,.0f}", style="text-align:right;")))
         return Div(
             H1(f"Budget: {title}"),
             Div(Div(Div("Scenario", cls="stat-label"), Div(scenario.upper(), cls="stat-value"), cls="stat-card"),
@@ -205,7 +253,7 @@ Categories: Above-the-Line, Below-the-Line (Production), Below-the-Line (Post), 
                 cls="stats-grid"),
             P(summary or "", style="color:#475569;margin:1rem 0;"),
             Table(Thead(Tr(Th("Category"), Th("Item"), Th("Amount", style="text-align:right;"))),
-                  Tbody(*tab_rows), style="width:100%;border-collapse:collapse;font-size:0.85rem;"),
+                  Tbody(*grouped_rows), style="width:100%;border-collapse:collapse;font-size:0.85rem;"),
             Button("Back", cls="auth-btn", style="margin-top:1.5rem;", onclick="loadModule('/module/budget', 'Smart Budget')"),
             cls="module-content",
         )

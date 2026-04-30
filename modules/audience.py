@@ -36,7 +36,7 @@ Return ONLY valid JSON:
   ],
   "marketing_plan": {{
     "total_spend_estimate": <number>,
-    "channels": [{{"channel": "Social Media", "percentage": <int>, "rationale": "..."}}],
+    "channels": [{{"channel": "Social Media", "percentage": <int>, "rationale": "...", "estimated_spend": <number>, "projected_reach": <number>, "roi_percentage": <number>}}],
     "release_window": "...",
     "p_and_a_ratio": "<ratio of P&A to production budget>"
   }},
@@ -46,6 +46,7 @@ Return ONLY valid JSON:
     "platform_strategy": "...",
     "festival_strategy": "..."
   }},
+  "strategy_reasoning": "<2-3 sentence explanation of overall marketing strategy rationale>",
   "summary": "..."
 }}
 
@@ -59,6 +60,7 @@ Provide 3-5 audience segments and 4-6 marketing channels."""
         segments = data.get("segments", [])
         marketing = data.get("marketing_plan", {})
         release = data.get("release_strategy", {})
+        strategy_reasoning = data.get("strategy_reasoning", "")
         summary = data.get("summary", "")
 
         lines = [f"## Audience Analysis: {title}\n", summary, "\n### Audience Segments\n",
@@ -68,10 +70,12 @@ Provide 3-5 audience segments and 4-6 marketing channels."""
         lines.append(f"\n### Marketing Plan\n")
         lines.append(f"**Estimated Spend:** ${marketing.get('total_spend_estimate', 0):,.0f}")
         lines.append(f"**Release Window:** {marketing.get('release_window', 'TBD')}")
-        lines.append(f"\n| Channel | Share | Rationale |")
-        lines.append(f"|---------|-------|-----------|")
+        lines.append(f"\n| Channel | Share | Est. Spend | Proj. Reach | ROI % | Rationale |")
+        lines.append(f"|---------|-------|------------|-------------|-------|-----------|")
         for ch in marketing.get("channels", []):
-            lines.append(f"| {ch.get('channel', '')} | {ch.get('percentage', 0)}% | {ch.get('rationale', '')} |")
+            lines.append(f"| {ch.get('channel', '')} | {ch.get('percentage', 0)}% | ${ch.get('estimated_spend', 0):,.0f} | {ch.get('projected_reach', 0):,.0f} | {ch.get('roi_percentage', 0)}% | {ch.get('rationale', '')} |")
+        if strategy_reasoning:
+            lines.append(f"\n### Strategy Rationale\n{strategy_reasoning}")
         lines.append(f"\n### Release Strategy")
         lines.append(f"- **Domestic:** {release.get('domestic_release', '')}")
         lines.append(f"- **International:** {release.get('international_rollout', '')}")
@@ -133,7 +137,7 @@ def register_routes(rt):
 Project: {title} | Genre: {genre} | Cast: {cast} | Budget: {budget} | Target: {target_demo}
 
 Return ONLY valid JSON:
-{{"segments": [{{"name": "...", "age_range": "...", "percentage": <int>, "description": "..."}}], "marketing_plan": {{"total_spend_estimate": <number>, "channels": [{{"channel": "...", "percentage": <int>, "rationale": "..."}}], "release_window": "...", "p_and_a_ratio": "..."}}, "release_strategy": {{"domestic_release": "...", "international_rollout": "...", "platform_strategy": "...", "festival_strategy": "..."}}, "summary": "..."}}"""
+{{"segments": [{{"name": "...", "age_range": "...", "percentage": <int>, "description": "..."}}], "marketing_plan": {{"total_spend_estimate": <number>, "channels": [{{"channel": "...", "percentage": <int>, "rationale": "...", "estimated_spend": <number>, "projected_reach": <number>, "roi_percentage": <number>}}], "release_window": "...", "p_and_a_ratio": "..."}}, "release_strategy": {{"domestic_release": "...", "international_rollout": "...", "platform_strategy": "...", "festival_strategy": "..."}}, "strategy_reasoning": "<2-3 sentence explanation of overall marketing strategy rationale>", "summary": "..."}}"""
         try:
             resp = llm.invoke(prompt)
             content = resp.content.strip()
@@ -146,6 +150,7 @@ Return ONLY valid JSON:
         segments = data.get("segments", [])
         marketing = data.get("marketing_plan", {})
         release = data.get("release_strategy", {})
+        strategy_reasoning = data.get("strategy_reasoning", "")
         summary = data.get("summary", "")
 
         pool = get_pool()
@@ -167,7 +172,9 @@ Return ONLY valid JSON:
             style="padding:0.75rem;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:0.5rem;",
         ) for seg in segments]
 
-        channel_rows = [Tr(Td(ch.get("channel", "")), Td(f"{ch.get('percentage', 0)}%"), Td(ch.get("rationale", "")))
+        channel_rows = [Tr(Td(ch.get("channel", "")), Td(f"{ch.get('percentage', 0)}%"),
+                           Td(f"${ch.get('estimated_spend', 0):,.0f}"), Td(f"{ch.get('projected_reach', 0):,.0f}"),
+                           Td(f"{ch.get('roi_percentage', 0)}%"), Td(ch.get("rationale", "")))
                         for ch in marketing.get("channels", [])]
 
         return Div(
@@ -183,8 +190,10 @@ Return ONLY valid JSON:
             ),
             H2("Audience Segments"), *seg_cards,
             H2("Marketing Channels", style="margin-top:1.5rem;"),
-            Table(Thead(Tr(Th("Channel"), Th("Share"), Th("Rationale"))), Tbody(*channel_rows),
+            Table(Thead(Tr(Th("Channel"), Th("Share"), Th("Est. Spend"), Th("Proj. Reach"), Th("ROI %"), Th("Rationale"))), Tbody(*channel_rows),
                   style="width:100%;border-collapse:collapse;font-size:0.85rem;"),
+            H2("Strategy Rationale", style="margin-top:1.5rem;"),
+            P(strategy_reasoning, style="color:#475569;font-size:0.9rem;padding:1rem;background:#f0f9ff;border-radius:8px;border:1px solid #bae6fd;"),
             H2("Release Strategy", style="margin-top:1.5rem;"),
             Ul(Li(f"Domestic: {release.get('domestic_release', '')}"),
                Li(f"International: {release.get('international_rollout', '')}"),
