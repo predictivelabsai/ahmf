@@ -428,6 +428,7 @@ html, body { height: 100%; background: var(--bg); color: var(--ink); overflow: h
 /* ── Right Pane ── */
 .right-pane {
     background: var(--bg-elev);
+    color: var(--ink);
     border-left: 1px solid var(--line);
     display: flex;
     flex-direction: column;
@@ -477,6 +478,7 @@ html, body { height: 100%; background: var(--bg); color: var(--ink); overflow: h
     line-height: 1.5;
     max-width: 95%;
     word-wrap: break-word;
+    color: var(--ink);
 }
 .copilot-msg table { font-size: .72rem; border-collapse: collapse; width: 100%; margin: .5rem 0; }
 .copilot-msg th, .copilot-msg td { padding: .25rem .4rem; border: 1px solid var(--line); text-align: left; }
@@ -529,12 +531,15 @@ html, body { height: 100%; background: var(--bg); color: var(--ink); overflow: h
     margin-top: .35rem;
 }
 .copilot-textarea {
-    flex: 1;
+    flex: 1 1 0%;
+    min-width: 0;
     border: 1px solid var(--line);
     border-radius: 8px;
     padding: .5rem;
     font-size: .8rem;
     font-family: inherit;
+    color: var(--ink);
+    background: var(--bg-elev);
     resize: none;
     min-height: 36px;
     max-height: 80px;
@@ -545,11 +550,10 @@ html, body { height: 100%; background: var(--bg); color: var(--ink); overflow: h
     color: white;
     border: none;
     border-radius: 8px;
-    width: 36px;
+    flex: 0 0 36px;
     height: 36px;
     font-size: 1rem;
     cursor: pointer;
-    flex-shrink: 0;
 }
 .copilot-send-btn:hover { background: var(--blue-deep); }
 .copilot-thinking { font-size: .72rem; color: var(--ink-dim); padding: .35rem; }
