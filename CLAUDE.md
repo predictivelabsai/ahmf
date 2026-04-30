@@ -116,6 +116,14 @@ transactions / messages          Transaction ledger / messages & tasks
 help                             Show available commands
 ```
 
+## GitHub Workflow
+
+After committing implementation work, always label the corresponding GitHub issue with `ready-for-testing`. Example:
+
+```bash
+gh issue edit <NUMBER> --repo predictivelabsai/monika --add-label "ready-for-testing"
+```
+
 ## Deployment
 
 ```bash
