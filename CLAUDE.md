@@ -1,230 +1,124 @@
-# Monika — Ashland Hill Media Finance
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project
 
 Film financing operating system with AI-driven intelligence tools. Product name: **Monika**. Company: Ashland Hill Media Finance. The `ahmf` database schema is legacy and remains unchanged.
 
-## Stack
+**Stack**: Python 3.13 (venv at `.venv/`), FastHTML, LangGraph + XAI Grok-3-Mini, PostgreSQL (`ahmf` schema), HTMX + WebSocket.
 
-- **Python 3.13**, virtualenv at `.venv/`
-- **FastHTML** 3-pane agentic UI (`app.py`, port 5010)
-- **LangGraph** + XAI Grok-3 for AI chat agents
-- **PostgreSQL** (`ahmf` schema on finespresso_db)
-- **HTMX + WebSocket** for real-time streaming
+## Commands
+
+```bash
+source .venv/bin/activate          # or use .venv/bin/python directly
+python app.py                      # start app on port 5010
+
+python tests/test_suite.py         # 30-test unit suite (DB, auth, tools, APIs)
+python tests/test_copilot.py       # copilot text-to-SQL tests (all shortcut buttons)
+python tests/regression_suite.py --start-app  # 76 Python + Playwright tests
+
+python data/seed_db.py             # seed sample data (idempotent)
+python change_log.py               # patch bump changelog before push
+python tests/capture_guide.py --start-app     # regenerate guide screenshots
+python docs/generate_pptx.py       # regenerate slide deck
+python -m utils.scoring.train      # retrain credit scoring ML models
+```
+
+Test results go to `test-data/*.json`. Regression screenshots go to `screenshots/`.
+
+## Secrets Policy
+
+**NEVER copy, persist, log, or document actual secret values.** Reference by variable name only (e.g. `XAI_API_KEY=...`). Verify no secrets in `git diff` before committing. Required env vars: `DB_URL`, `XAI_API_KEY`, `TMDB_API_KEY`, `TMDB_API_READ_TOKEN`, `OMDB_API_KEY`, `TAVILY_API_KEY`, `JWT_SECRET`, `ENCRYPTION_KEY`. Optional for Clerk SSO: `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`.
+
+## Architecture
+
+### app.py (~2,500 lines, structured monolith)
+
+The main application file contains most routes and the agent setup. Major sections in order:
+
+1. **Agent setup** — LangGraph `create_react_agent` with 18 tool functions defined inline
+2. **Command interceptor** — Pre-filters colon-syntax commands (e.g. `deal:list`, `contact:search`); returns markdown string or `None` to fall through to AI agent
+3. **AG-UI initialization** — `setup_agui(app, agent, command_interceptor)` wires the WebSocket chat
+4. **API endpoints** — `/api/health`, `/api/copilot/*`, `/api/export/*`, `/api/import/*`
+5. **Auth routes** — Login, register, Clerk SSO bridge, password reset
+6. **Module pages** — Deals, contacts, home dashboard, reporting (~40 routes)
+7. **Module registration** — 13 modules imported and registered via `register_routes(rt)` at bottom
+8. **Index route** — Main page with 3-pane layout
+9. **`serve()`** — Starts uvicorn on port 5010
+
+### Two chat systems
+
+**Main Chat (center pane)** — Full LangGraph agent with 18 tools, persistent conversation threads, WebSocket streaming via `astream_events(v2)`. Messages stored in `utils/agui/chat_store.py`. Command interceptor runs first; if no match, query goes to AI.
+
+**AI Copilot (right pane)** — Stateless text-to-SQL assistant in `agents/copilot.py`. Module-aware: `COPILOT_SHORTCUTS` maps each module to suggested queries. Three-step pipeline: LLM generates SQL → execute against DB → LLM formats results. Uses schema from `sql/db_schema.json`. Endpoint: `POST /api/copilot/query`.
+
+### Module pattern
+
+Each module in `modules/` exports `register_routes(rt)` to mount its routes on the FastHTML router. Some modules also export tool functions used by the LangGraph agent (dual role: page routes + agent tools). The landing page is an exception — imported inline in the index route.
+
+### AG-UI chat engine (utils/agui/)
+
+Vendored chat framework with three classes: `UI` (renders messages/input), `AGUIThread` (per-thread state, handles message flow and AI streaming), `AGUISetup` (thread container, registers WebSocket routes). WebSocket at `/agui/ws/{thread_id}` handles real-time streaming. Events flow as: user message → command interceptor → LangGraph `astream_events(v2)` → token-by-token broadcast to subscribers → marked.js renders markdown client-side.
+
+### Database layer
+
+`utils/db.py` provides `DatabasePool` singleton. Usage: `get_pool().get_session()` returns a context-managed session that auto-commits on success, rolls back on exception. Pool size 5, max overflow 10, with `pool_pre_ping=True`. All queries use the `ahmf.` schema prefix.
+
+### Authentication
+
+Dual auth: Clerk SSO (if `CLERK_SECRET_KEY` configured) or local email/password fallback. Clerk bridge in `_check_clerk_session()` validates `__session` cookie JWT via JWKS, fetches user from Clerk API, auto-creates local DB user on first login, and syncs to FastHTML session. Local auth uses bcrypt + JWT tokens (7-day expiry) in `utils/auth.py`.
+
+### Frontend
+
+Custom CSS in `static/app.css` (no framework). 3-pane grid: left nav (240px) | center (1fr) | right copilot (360px). JS in `static/chat.js` handles module switching (`loadModule()`), right pane toggling, CSV export, table sorting. Charts use Plotly 2.32.0. Markdown rendered by marked.js. Clerk SDK loaded conditionally from CDN.
 
 ## Key Directories
 
 | Directory | Purpose |
 |-----------|---------|
-| `modules/` | Product module routes (deals, contacts, risk, budget, schedule, funding, dataroom, audience, talent, guide) |
-| `agents/` | LangGraph agents and tool definitions |
+| `modules/` | Product module routes (13 modules with `register_routes(rt)` pattern) |
+| `agents/` | LangGraph agent config and copilot text-to-SQL |
 | `agents/tools/` | Structured tool functions for agents |
-| `utils/` | Core utilities (db, auth, TMDB, OMDB, PDF extraction) |
-| `utils/agui/` | AG-UI chat engine (vendored from alpatrade, adapted) |
-| `sql/` | Database migrations (01-13) |
-| `config/` | App settings and constants |
+| `utils/` | Core utilities (db, auth, clerk, TMDB, OMDB, PDF extraction) |
+| `utils/agui/` | AG-UI WebSocket chat engine |
 | `utils/scoring/` | Credit-scoring ML package (catalog, dataset, training, inference) |
-| `models/` | Trained RF + Logistic Regression artefacts per collateral type |
-| `specs/` | Source wireframes, SOW PDF, and credit scoring methodology Excel |
-| `tests/` | Test suite (30 tests) |
-| `test-data/` | Test results and screenshots (generated) |
-| `static/guide/` | User guide screenshots (generated via Playwright) |
-| `docs/` | Roadmap PDF, presentation markdown, PPTX, generator script |
+| `sql/` | Database migrations (01-13) and `db_schema.json` |
+| `config/` | App settings and constants |
+| `data/` | Seed CSVs and `seed_db.py` |
+| `models/` | Trained ML model artefacts per collateral type |
 
-## Products (from Roadmap)
+## Products
 
-1. **Film Financing OS** — Deals (CRUD), Sales & Collections (contracts, MG tracking, collections), Credit Rating (AI scoring), Accounting (transaction ledger), Contacts (CRUD), Communications (messages/tasks)
-2. **Sales Estimates Generator** — TMDB/OMDB comp analysis, territory MG projections, box office forecasting
-3. **Production Risk Scoring** — AI scores 6 risk dimensions (0-100), risk tier, mitigations
-4. **Smart Budgeting Tool** — AI generates low/mid/high budget scenarios with line items
-5. **Automated Production Scheduling** — AI generates day-by-day schedules with location clustering
-6. **Soft Funding Discovery Engine** — 16 seeded global incentive programs, rebate calculator
-7. **Deal Closing & Data Room** — Per-deal 20-item closing checklists, document tracking
-8. **Audience & Marketing Intelligence** — AI predicts audience segments, marketing channels, release strategy
-9. **Talent Intelligence** — TMDB actor search, AI cast recommendations with heat/fit/ROI scores
-10. **Credit Scoring (ML)** — Random Forest + Logistic Regression per collateral type (Pre-Sales, Gap/Unsold, Tax Credit). Feature importance + per-deal contribution charts in Plotly. Methodology documented in `docs/counterparty_risk_methodology.md`. Train: `python -m utils.scoring.train`
-
-## Secrets Policy
-
-**NEVER copy, persist, log, or document actual secret values.** API keys, tokens, passwords, and connection strings from `.env` must only be used transiently during runtime.
-- Do not write secret values into source files, docs, markdown, YAML, or memory files
-- Do not include secrets in commit messages, comments, or debug output
-- Do not hardcode API keys — always read from environment variables
-- Reference secrets by variable name only (e.g. `XAI_API_KEY=...`)
-- Before committing, verify no secrets appear in `git diff` output
-
-## Required Environment Variables (.env)
-
-```
-DB_URL=...                    # PostgreSQL connection string
-XAI_API_KEY=...               # XAI Grok LLM
-TMDB_API_KEY=...              # TMDB movie database
-TMDB_API_READ_TOKEN=...       # TMDB read access token
-OMDB_API_KEY=...              # OMDB movie data
-TAVILY_API_KEY=...            # Tavily web search
-JWT_SECRET=...                # JWT signing secret
-ENCRYPTION_KEY=...            # Fernet encryption key
-```
-
-## Authentication
-
-- **Email/password** registration + login with bcrypt password hashing
-- **JWT tokens** for session management (7-day expiry)
-- **Data isolation**: All tables have `created_by` / `user_id` column
-- **Auth module**: `utils/auth.py`
-
-## Running
-
-```bash
-# Activate venv
-source .venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run SQL migrations
-for f in sql/*.sql; do psql $DB_URL -f "$f"; done
-
-# Seed sample data (idempotent — skips if data exists)
-python data/seed_db.py
-
-# Start the app
-python app.py    # port 5010
-```
-
-## Seed Data
-
-```bash
-# Populate key tables with realistic film finance data
-python data/seed_db.py
-```
-
-Seeds: 12 deals (active/pipeline/closed), 20 contacts (Lionsgate, A24, StudioCanal, CAA, etc.),
-15 sales contracts with collections, 20 transactions, 15 messages/tasks, 6 credit ratings,
-and 15 real comp films fetched from TMDB/OMDB (Inception, Pulp Fiction, Titanic, Dark Knight, etc.).
-
-CSVs in `data/`: `contacts.csv`, `deals.csv`, `sales_contracts.csv`, `transactions.csv`, `messages.csv`.
-
-When the user says "seed database" or "populate data", run `python data/seed_db.py`.
-
-## Testing
-
-```bash
-# Run the full test suite (30 tests)
-# Covers: DB, auth, JWT, deal/contact tools, TMDB/OMDB APIs,
-# incentives, talent search, closing checklists, command interceptor,
-# chat store, config, PDF extractor
-python tests/test_suite.py
-
-# Results written to test-data/*.json
-# test-data/test_summary.json has pass/fail counts
-```
-
-When the user says "run tests" or "run regression", execute `python tests/regression_suite.py --start-app` (76 Python + Playwright tests, screenshots to `screenshots/`). `python tests/test_suite.py` is the older 30-test subset.
-
-## Change Log
-
-`docs/change_log.md` is the running changelog. Bump before every push:
-
-```bash
-python change_log.py                      # patch bump (default)
-python change_log.py --bump minor
-python change_log.py --bump major
-python change_log.py --message "..."      # override body (else uses git log)
-python change_log.py --tag                # also create git tag v{version}
-python change_log.py --dry-run            # preview only
-```
-
-Version format: `x.y.z (YYYY-MM-DD)`. When the user says "bump version" or "update changelog", run `python change_log.py`.
-
-## User Guide Generation
-
-The in-app User Guide (`modules/guide.py`) displays screenshots from `static/guide/`.
-To regenerate all screenshots after UI changes:
-
-```bash
-# Option 1: App already running
-python app.py &
-python tests/capture_guide.py
-
-# Option 2: Auto-start app
-python tests/capture_guide.py --start-app
-```
-
-This launches a headless Playwright browser, logs in, navigates every module,
-captures 17 screenshots to `static/guide/`, and captures chat command responses.
-The guide module serves them as `<img src="/static/guide/...">`.
-
-When the user says "regenerate guide" or "update screenshots", run `python tests/capture_guide.py`.
-
-## Slide Deck Generation
-
-```bash
-# Generate the management PowerPoint presentation
-python docs/generate_pptx.py
-
-# Output: docs/AHMF_Platform_Overview.pptx (16 slides)
-# Uses screenshots from static/guide/ for slide visuals
-# Upload to Google Slides or open in PowerPoint
-```
-
-The markdown version is at `docs/AHMF_Platform_Overview.md` for reference.
-
-To regenerate after changes: update screenshots first (see User Guide Generation above), then run the script. The script reads from `static/guide/` and produces a branded PPTX with Ashland Hill blue theme.
-
-## Demo Video Generation
-
-```bash
-# Generate product demo video and GIF (app must be running)
-python app.py &
-python tests/capture_video.py
-
-# Output: docs/demo_video.mp4 (45s H.264), docs/demo_video.gif, docs/frames/*.png
-```
-
-Walks through the entire platform: login, welcome, chat commands, all module pages, and back to welcome.
-
-## README Generation
-
-The `README.md` should be updated when significant changes are made to the platform — new products, new features, changed commands, or architecture changes. It includes the demo GIF, feature list, quick start (with uv), environment variables, tech stack, and testing commands.
-
-When the user says "update readme" or after major feature work, regenerate `README.md` to reflect current state.
+1. **Film Financing OS** — Deals, Sales & Collections, Credit Rating, Accounting, Contacts, Communications
+2. **Sales Estimates Generator** — TMDB/OMDB comp analysis, territory MG projections
+3. **Production Risk Scoring** — AI scores 6 risk dimensions (0-100)
+4. **Smart Budgeting Tool** — AI generates low/mid/high budget scenarios
+5. **Automated Production Scheduling** — AI generates day-by-day schedules
+6. **Soft Funding Discovery Engine** — 16 global incentive programs, rebate calculator
+7. **Deal Closing & Data Room** — Per-deal 20-item closing checklists
+8. **Audience & Marketing Intelligence** — AI predicts audience segments, marketing channels
+9. **Talent Intelligence** — TMDB actor search, AI cast recommendations
+10. **Credit Scoring (ML)** — RF + Logistic Regression per collateral type. Methodology in `docs/counterparty_risk_methodology.md`
 
 ## Chat Commands
 
 ```
-deal:list                    List all deals
-deal:DEAL_ID                 View deal details
-contact:search NAME          Search contacts
-portfolio                    Portfolio overview
-estimate:new                 Generate sales estimate
-risk:new                     Production risk assessment
-budget:new                   Generate production budget
-schedule:new                 Generate shooting schedule
-incentives                   Search film incentive programs
-talent:search NAME           Search actors/directors
-audience:new                 Audience & marketing analysis
-sales:list                   List sales contracts
-credit:CONTACT               Look up credit rating
-transactions                 View transaction ledger
-messages                     View messages & tasks
-help                         Show available commands
+deal:list / deal:DEAL_ID         List deals / view deal details
+contact:search NAME              Search contacts
+portfolio                        Portfolio overview
+estimate:new / risk:new          Sales estimate / risk assessment
+budget:new / schedule:new        Budget / shooting schedule
+incentives / talent:search NAME  Incentives / actor search
+audience:new                     Audience & marketing analysis
+sales:list / credit:CONTACT      Sales contracts / credit rating
+transactions / messages          Transaction ledger / messages & tasks
+help                             Show available commands
 ```
-
-## Architecture
-
-- **3-pane layout**: Left sidebar (260px nav) | Center (chat + module views) | Right (380px detail canvas)
-- **Command interceptor**: Colon-syntax routed to handlers, free-form to LangGraph AI
-- **WebSocket streaming**: LangGraph astream_events(v2) for real-time AI responses
-- **HTMX module views**: Product pages swapped into center pane via hx-get/hx-swap
-- **18 AI agent tools**: deals, contacts, portfolio, TMDB/OMDB, risk, budget, schedule, incentives, closing, audience, talent, sales contracts, credit rating, transactions, messages
 
 ## Deployment
 
 ```bash
-# Docker build & run locally
-docker build -t ahmf .
-docker run --env-file .env -p 5010:5010 ahmf
-
-# Coolify: auto-deploys on push to main
-# docker-compose.yml: service "web", expose 5010, healthcheck on /api/health
-# Matches filmfunder.predictivelabs.ai deployment pattern
+docker build -t ahmf . && docker run --env-file .env -p 5010:5010 ahmf
+# Coolify: auto-deploys on push to main via docker-compose.yml
 ```
