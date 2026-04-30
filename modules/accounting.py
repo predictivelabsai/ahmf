@@ -361,8 +361,13 @@ def register_routes(rt):
         return Div(
             Div(
                 H1("Accounts & Transactions"),
-                Button("+ New Transaction", cls="auth-btn",
-                       hx_get="/module/accounting/new", hx_target="#center-content", hx_swap="innerHTML"),
+                Div(
+                    A("⤓ CSV", href="/api/export/transactions", cls="filter-chip",
+                      style="text-decoration:none;display:inline-flex;align-items:center;font-size:.82rem;"),
+                    Button("+ New Transaction", cls="auth-btn",
+                           hx_get="/module/accounting/new", hx_target="#center-content", hx_swap="innerHTML"),
+                    style="display:flex;align-items:center;gap:.75rem;",
+                ),
                 style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;",
             ),
             account_selector,

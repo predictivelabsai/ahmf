@@ -267,6 +267,7 @@ html, body { height: 100%; background: var(--bg); color: var(--ink); overflow: h
     transition: all .15s; cursor: pointer;
 }
 .filter-chip:hover { border-color: var(--blue); color: var(--blue); }
+.filter-active { border-color: var(--blue); color: var(--blue); background: rgba(0, 82, 204, 0.08); font-weight: 600; }
 
 /* ── Reporting page ── */
 .report-templates {

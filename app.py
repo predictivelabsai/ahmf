@@ -555,6 +555,123 @@ async def copilot_query_endpoint(msg: str, module_id: str = "home", session=None
 
 
 # ---------------------------------------------------------------------------
+# CSV Export APIs
+# ---------------------------------------------------------------------------
+
+@rt("/api/export/deals")
+def export_deals(session):
+    import csv, io
+    from sqlalchemy import text
+    from utils.db import get_pool
+    from starlette.responses import Response
+    pool = get_pool()
+    with pool.get_session() as s:
+        rows = s.execute(text("""
+            SELECT deal_id, title, project_type, genre, status, loan_amount, currency,
+                   interest_rate, term_months, borrower_name, producer, director,
+                   budget, territory, origination_date, maturity_date
+            FROM ahmf.deals ORDER BY created_at DESC
+        """)).fetchall()
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["Deal ID", "Title", "Type", "Genre", "Status", "Loan Amount", "Currency",
+                     "Interest Rate", "Term (months)", "Borrower", "Producer", "Director",
+                     "Budget", "Territory", "Origination Date", "Maturity Date"])
+    for r in rows:
+        writer.writerow(list(r))
+    return Response(buf.getvalue(), media_type="text/csv",
+                    headers={"Content-Disposition": "attachment; filename=deals_export.csv"})
+
+
+@rt("/api/export/transactions")
+def export_transactions(session):
+    import csv, io
+    from sqlalchemy import text
+    from utils.db import get_pool
+    from starlette.responses import Response
+    pool = get_pool()
+    with pool.get_session() as s:
+        rows = s.execute(text("""
+            SELECT t.txn_id, d.title AS deal, t.txn_type, t.amount, t.currency,
+                   c.name AS counterparty, t.reference, t.posted_date
+            FROM ahmf.transactions t
+            LEFT JOIN ahmf.deals d ON d.deal_id = t.deal_id
+            LEFT JOIN ahmf.contacts c ON c.contact_id = t.counterparty_id
+            ORDER BY t.posted_date DESC
+        """)).fetchall()
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["Txn ID", "Deal", "Type", "Amount", "Currency", "Counterparty", "Reference", "Date"])
+    for r in rows:
+        writer.writerow(list(r))
+    return Response(buf.getvalue(), media_type="text/csv",
+                    headers={"Content-Disposition": "attachment; filename=transactions_export.csv"})
+
+
+@rt("/api/export/contacts")
+def export_contacts(session):
+    import csv, io
+    from sqlalchemy import text
+    from utils.db import get_pool
+    from starlette.responses import Response
+    pool = get_pool()
+    with pool.get_session() as s:
+        rows = s.execute(text("""
+            SELECT c.contact_id, c.name, c.company, c.contact_type, c.email, c.phone,
+                   c.credit_score, cr.risk_tier
+            FROM ahmf.contacts c
+            LEFT JOIN ahmf.credit_ratings cr ON c.contact_id = cr.contact_id
+            ORDER BY c.name
+        """)).fetchall()
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["Contact ID", "Name", "Company", "Type", "Email", "Phone", "Credit Score", "Risk Tier"])
+    for r in rows:
+        writer.writerow(list(r))
+    return Response(buf.getvalue(), media_type="text/csv",
+                    headers={"Content-Disposition": "attachment; filename=contacts_export.csv"})
+
+
+@rt("/api/import/contacts", methods=["POST"])
+async def import_contacts(session, request):
+    import csv, io
+    from sqlalchemy import text
+    from utils.db import get_pool
+    form = await request.form()
+    upload = form.get("file")
+    if not upload:
+        return Div(P("No file uploaded.", style="color:#dc2626;"), cls="module-content")
+    content = (await upload.read()).decode("utf-8-sig")
+    reader = csv.DictReader(io.StringIO(content))
+    pool = get_pool()
+    imported = 0
+    skipped = 0
+    with pool.get_session() as s:
+        for row in reader:
+            name = row.get("Name") or row.get("name") or ""
+            if not name.strip():
+                skipped += 1
+                continue
+            existing = s.execute(text("SELECT 1 FROM ahmf.contacts WHERE name = :n"), {"n": name.strip()}).fetchone()
+            if existing:
+                skipped += 1
+                continue
+            s.execute(text("""
+                INSERT INTO ahmf.contacts (name, company, contact_type, email, phone, created_by)
+                VALUES (:name, :company, :type, :email, :phone, :uid)
+            """), {
+                "name": name.strip(),
+                "company": (row.get("Company") or row.get("company") or "").strip(),
+                "type": (row.get("Type") or row.get("contact_type") or "other").strip().lower(),
+                "email": (row.get("Email") or row.get("email") or "").strip(),
+                "phone": (row.get("Phone") or row.get("phone") or "").strip(),
+                "uid": session.get("user_id"),
+            })
+            imported += 1
+    return module_contacts(session, import_msg=f"Imported {imported} contacts ({skipped} skipped)")
+
+
+# ---------------------------------------------------------------------------
 # Clerk session bridge
 # ---------------------------------------------------------------------------
 
@@ -1252,37 +1369,113 @@ def module_reporting(session):
 
 
 @rt("/module/deals")
-def module_deals(session):
+def module_deals(session, status: str = "", loan_min: str = "", loan_max: str = "", view: str = "grid"):
     from sqlalchemy import text
     from utils.db import get_pool
+    import datetime
     try:
         pool = get_pool()
         with pool.get_session() as s:
-            rows = s.execute(text("""
-                SELECT deal_id, title, status, loan_amount, borrower_name, genre
-                FROM ahmf.deals ORDER BY created_at DESC
-            """)).fetchall()
+            where_clauses = []
+            params = {}
+            if status:
+                where_clauses.append("status = :status")
+                params["status"] = status
+            if loan_min:
+                where_clauses.append("loan_amount >= :lmin")
+                params["lmin"] = float(loan_min)
+            if loan_max:
+                where_clauses.append("loan_amount <= :lmax")
+                params["lmax"] = float(loan_max)
+            where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+            rows = s.execute(text(f"""
+                SELECT deal_id, title, status, loan_amount, borrower_name, genre,
+                       origination_date, created_at
+                FROM ahmf.deals {where_sql} ORDER BY created_at DESC
+            """), params).fetchall()
     except Exception:
         rows = []
 
-    deal_cards = [_deal_poster_card(d) for d in rows]
-    if not deal_cards:
-        deal_cards = [Div("No deals yet.", cls="empty-state")]
+    today = datetime.date.today()
+
+    if view == "aging":
+        aging_rows = []
+        for d in rows:
+            deal_status = d[2] or "pipeline"
+            orig_date = d[6]
+            created_at = d[7]
+            start = orig_date or (created_at.date() if hasattr(created_at, 'date') else today)
+            days_in = (today - start).days if start else 0
+            aging_rows.append(Tr(
+                Td(A(d[1], href="#", onclick=f"loadModule('/module/deal/{d[0]}','Deal: {d[1]}');return false;",
+                     style="color:var(--blue);text-decoration:none;font-weight:500;")),
+                Td(deal_status.title()),
+                Td(f"${float(d[3]):,.0f}" if d[3] else "—"),
+                Td(str(days_in)),
+                Td(str(start) if start != today else "—"),
+            ))
+        content = Table(
+            Thead(Tr(Th("Title"), Th("Status"), Th("Loan"), Th("Days"), Th("Start Date"))),
+            Tbody(*aging_rows) if aging_rows else Tbody(Tr(Td("No deals.", colspan="5", style="text-align:center;padding:2rem;"))),
+            style="width:100%;border-collapse:collapse;font-size:.85rem;",
+        )
+    else:
+        deal_cards = [_deal_poster_card(d) for d in rows]
+        if not deal_cards:
+            deal_cards = [Div("No deals yet.", cls="empty-state")]
+        content = Div(*deal_cards, cls="deals-grid")
+
+    filter_panel = Div(
+        Div(
+            Select(
+                Option("All statuses", value=""),
+                Option("Active", value="active"),
+                Option("Pipeline", value="pipeline"),
+                Option("Closed", value="closed"),
+                Option("Declined", value="declined"),
+                name="status",
+                hx_get="/module/deals", hx_target="#center-content", hx_swap="innerHTML",
+                hx_include="[name='loan_min'],[name='loan_max'],[name='view']",
+                style="padding:.35rem .5rem;border:1px solid var(--line);border-radius:.3rem;font-size:.8rem;background:var(--bg-elev);color:var(--ink);",
+                **{"value": status} if status else {},
+            ),
+            Select(
+                Option("All loan sizes", value="", **{"data-min": "", "data-max": ""}),
+                Option("Under $5M", value="0-5000000"),
+                Option("$5M – $10M", value="5000000-10000000"),
+                Option("$10M – $15M", value="10000000-15000000"),
+                Option("$15M – $25M", value="15000000-25000000"),
+                Option("$25M+", value="25000000-"),
+                name="loan_range",
+                style="padding:.35rem .5rem;border:1px solid var(--line);border-radius:.3rem;font-size:.8rem;background:var(--bg-elev);color:var(--ink);",
+                onchange="var v=this.value.split('-');document.querySelector('[name=loan_min]').value=v[0]||'';document.querySelector('[name=loan_max]').value=v[1]||'';this.closest('div').querySelector('[name=status]').dispatchEvent(new Event('change'));",
+            ),
+            Input(type="hidden", name="loan_min", value=loan_min),
+            Input(type="hidden", name="loan_max", value=loan_max),
+            Input(type="hidden", name="view", value=view),
+            cls="deal-toolbar-btns", style="gap:.5rem;",
+        ),
+        Div(
+            Button("Grid", cls=f"filter-chip{' filter-active' if view == 'grid' else ''}",
+                   onclick="document.querySelector('[name=view]').value='grid';document.querySelector('[name=status]').dispatchEvent(new Event('change'));"),
+            Button("Aging", cls=f"filter-chip{' filter-active' if view == 'aging' else ''}",
+                   onclick="document.querySelector('[name=view]').value='aging';document.querySelector('[name=status]').dispatchEvent(new Event('change'));"),
+            A("⤓ CSV", href="/api/export/deals", cls="filter-chip",
+              style="text-decoration:none;display:inline-flex;align-items:center;"),
+            cls="deal-toolbar-btns", style="gap:.5rem;",
+        ),
+        style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.75rem;",
+    )
 
     return Div(
         Div(
             H1("Deals"),
-            Div(
-                Button("Filter", cls="filter-chip"),
-                Button("Sort", cls="filter-chip"),
-                Button("List view", cls="filter-chip"),
-                cls="deal-toolbar-btns",
-            ),
             Button("New Deal +", cls="new-deal-btn",
                    hx_get="/module/deal/new", hx_target="#center-content", hx_swap="innerHTML"),
             cls="deals-header",
         ),
-        Div(*deal_cards, cls="deals-grid"),
+        filter_panel,
+        content,
         cls="module-content",
     )
 
@@ -1729,7 +1922,7 @@ def deal_create(session, title: str, status: str = "pipeline", project_type: str
 
 
 @rt("/module/contacts")
-def module_contacts(session):
+def module_contacts(session, import_msg: str = ""):
     from sqlalchemy import text
     from utils.db import get_pool
     try:
@@ -1758,10 +1951,27 @@ def module_contacts(session):
             onclick=f"loadModule('/module/contact/{cid}','Contacts — {c[1]}')",
         ))
 
+    msg_banner = Div(P(import_msg, style="color:#16a34a;font-weight:500;"), style="margin-bottom:.75rem;") if import_msg else ""
+
+    import_form = Form(
+        Input(type="file", name="file", accept=".csv", style="font-size:.82rem;"),
+        Button("Import", type="submit", cls="filter-chip", style="font-size:.82rem;"),
+        style="display:inline-flex;align-items:center;gap:.5rem;",
+        hx_post="/api/import/contacts", hx_target="#center-content", hx_swap="innerHTML",
+        hx_encoding="multipart/form-data",
+    )
+
     return Div(
+        msg_banner,
         Div(
             H1("Contacts"),
-            Button("+ Add Contact", cls="auth-btn", hx_get="/module/contact/new", hx_target="#center-content", hx_swap="innerHTML"),
+            Div(
+                A("⤓ CSV", href="/api/export/contacts", cls="filter-chip",
+                  style="text-decoration:none;display:inline-flex;align-items:center;font-size:.82rem;"),
+                import_form,
+                Button("+ Add Contact", cls="auth-btn", hx_get="/module/contact/new", hx_target="#center-content", hx_swap="innerHTML"),
+                style="display:flex;align-items:center;gap:.75rem;",
+            ),
             style="display:flex;justify-content:space-between;align-items:center;",
         ),
         Table(
