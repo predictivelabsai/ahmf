@@ -550,10 +550,17 @@ html, body { height: 100%; background: var(--bg); color: var(--ink); overflow: h
     color: white;
     border: none;
     border-radius: 8px;
-    flex: 0 0 36px;
+    width: 36px;
+    min-width: 36px;
+    max-width: 36px;
     height: 36px;
     font-size: 1rem;
     cursor: pointer;
+    flex-shrink: 0;
+    flex-grow: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 .copilot-send-btn:hover { background: var(--blue-deep); }
 .copilot-thinking { font-size: .72rem; color: var(--ink-dim); padding: .35rem; }
