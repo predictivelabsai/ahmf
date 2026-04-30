@@ -11,33 +11,23 @@ from langchain_core.messages import SystemMessage, HumanMessage
 
 logger = logging.getLogger(__name__)
 
-AHMF_SCHEMA = """
-PostgreSQL schema 'ahmf' tables:
+def _load_schema() -> str:
+    """Load schema from db_schema.json and format as text for the LLM."""
+    import json
+    schema_path = os.path.join(os.path.dirname(__file__), "..", "sql", "db_schema.json")
+    try:
+        with open(schema_path) as f:
+            schema = json.load(f)
+    except FileNotFoundError:
+        logger.warning("db_schema.json not found, using empty schema")
+        return ""
+    lines = ["PostgreSQL schema 'ahmf' tables:\n"]
+    for table, info in schema["tables"].items():
+        cols = ", ".join(f"{col} {dtype}" for col, dtype in info["columns"].items())
+        lines.append(f"{table} ({cols})\n")
+    return "\n".join(lines)
 
-deals (deal_id UUID PK, title VARCHAR, project_type VARCHAR, genre VARCHAR, status VARCHAR [active|pipeline|closed|declined],
-  loan_amount NUMERIC, currency VARCHAR, interest_rate NUMERIC, term_months INT, borrower_name VARCHAR,
-  producer VARCHAR, director VARCHAR, cast_summary TEXT, budget NUMERIC, territory VARCHAR,
-  collateral_type VARCHAR, origination_date DATE, maturity_date DATE, notes TEXT, created_by UUID, created_at TIMESTAMPTZ)
-
-contacts (contact_id UUID PK, name VARCHAR, company VARCHAR, role VARCHAR, email VARCHAR, phone VARCHAR,
-  contact_type VARCHAR [distributor|producer|sales_agent|talent|financier|legal|other],
-  credit_score NUMERIC, notes TEXT, created_by UUID, created_at TIMESTAMPTZ)
-
-sales_contracts (contract_id UUID PK, deal_id UUID FK→deals, territory VARCHAR, distributor_id UUID FK→contacts,
-  mg_amount NUMERIC, currency VARCHAR, payment_schedule JSONB, status VARCHAR, created_by UUID, created_at TIMESTAMPTZ)
-
-collections (collection_id UUID PK, contract_id UUID FK→sales_contracts, amount NUMERIC, currency VARCHAR,
-  collected_date DATE, status VARCHAR, notes TEXT)
-
-transactions (txn_id UUID PK, deal_id UUID FK→deals, txn_type VARCHAR [disbursement|repayment|fee|interest],
-  amount NUMERIC, currency VARCHAR, counterparty_id UUID FK→contacts, posted_date DATE, reference VARCHAR)
-
-messages (message_id UUID PK, deal_id UUID FK→deals, sender VARCHAR, subject VARCHAR, body TEXT,
-  message_type VARCHAR [message|task], status VARCHAR, due_date DATE, priority VARCHAR)
-
-credit_ratings (rating_id UUID PK, contact_id UUID FK→contacts, score NUMERIC, payment_reliability NUMERIC,
-  risk_tier VARCHAR [AAA|AA|A|BBB|BB|B], factors JSONB, rated_at TIMESTAMPTZ)
-"""
+AHMF_SCHEMA = _load_schema()
 
 SQL_SYSTEM = f"""You are a SQL assistant for Ashland Hill Media Finance. Generate PostgreSQL SELECT queries against the 'ahmf' schema.
 

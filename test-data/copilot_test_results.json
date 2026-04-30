@@ -1,0 +1,31 @@
+{
+  "passed": 26,
+  "failed": 5,
+  "errors": [
+    {
+      "module": "deal",
+      "query": "Show all contracts",
+      "error": "SQL execution error: Query error: (psycopg2.errors.UndefinedParameter) there is no parameter $1\nLINE 1: ...ELECT * FROM ahmf.sales_contracts WHERE deal_id = $1 LIMIT 2...\n                                                             ^\n"
+    },
+    {
+      "module": "deal",
+      "query": "Transaction history",
+      "error": "SQL execution error: Query error: (psycopg2.errors.UndefinedParameter) there is no parameter $1\nLINE 1: SELECT * FROM ahmf.transactions WHERE deal_id = $1 ORDER BY ...\n                                                        ^\n\n[SQL: S"
+    },
+    {
+      "module": "contact",
+      "query": "Deal history",
+      "error": "SQL execution error: Query error: (psycopg2.errors.UndefinedParameter) there is no parameter $1\nLINE 4: WHERE dc.contact_id = $1\n                              ^\n\n[SQL: SELECT d.deal_id, d.title, d.status, d.origination_date, d.maturit"
+    },
+    {
+      "module": "contact",
+      "query": "Payment reliability",
+      "error": "SQL execution error: Query error: (psycopg2.errors.UndefinedParameter) there is no parameter $1\nLINE 1: ...ility FROM ahmf.credit_ratings WHERE contact_id = $1 LIMIT 2...\n                                                             ^\n"
+    },
+    {
+      "module": "contact",
+      "query": "Total MG value",
+      "error": "SQL execution error: Query error: (psycopg2.errors.UndefinedParameter) there is no parameter $1\nLINE 1: ... FROM ahmf.sales_contracts WHERE distributor_id = $1 LIMIT 2...\n                                                             ^\n"
+    }
+  ]
+}
